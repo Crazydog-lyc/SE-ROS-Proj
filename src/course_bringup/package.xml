@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>course_bringup</name>
+  <version>0.1.0</version>
+  <description>Integrated launch entrypoints for the merged Nav2 course workspace.</description>
+  <maintainer email="team@example.com">Course Team</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <depend>ament_index_python</depend>
+  <depend>course_interfaces</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  <depend>nav2_mission_manager</depend>
+  <depend>python3-yaml</depend>
+  <depend>rclpy</depend>
+  <depend>sam_bot_nav2_gz</depend>
+  <depend>sam_bot_safety_monitor</depend>
+  <depend>semantic_costmap_plugins</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,7 @@
+string case_file
+---
+bool success
+string case_id
+string mission_file
+string zones_file
+string message

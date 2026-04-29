@@ -1,0 +1,30 @@
+safety_monitor:
+  ros__parameters:
+    use_sim_time: True
+    scan_topic: /scan
+    odom_topic: /odom
+    cmd_vel_topic: /cmd_vel
+    base_frame: base_link
+    odom_frame: odom
+    enable_sensor_monitor: False
+    enable_tf_monitor: False
+    enable_blockage_monitor: False
+    enable_obstacle_monitor: True
+    startup_grace_period_sec: 5.0
+    tf_startup_grace_period_sec: 5.0
+    tf_require_initial_transform: False
+    sensor_timeout_sec: 10.0
+    tf_timeout_sec: 10.0
+    obstacle_pause_distance: 0.28
+    obstacle_monitor_fov_deg: 20.0
+    obstacle_monitor_requires_motion: True
+    obstacle_monitor_motion_grace_sec: 1.0
+    blockage_window_sec: 6.0
+    min_progress_distance: 0.05
+    min_cmd_vel_linear: 0.05
+    min_cmd_vel_angular: 0.1
+    auto_cancel_after_recovery_failures: 2
+    recovery_grace_period_sec: 3.0
+    monitor_period_sec: 0.2
+    zero_cmd_publish_period_sec: 0.1
+    recovery_clear_costmaps: True

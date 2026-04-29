@@ -1,0 +1,18 @@
+<library path="nav2_scenario_runner_core">
+  <class type="nav2_scenario_runner::plugins::CorridorGenerator"
+         base_class_type="nav2_scenario_runner::ScenarioGenerator">
+    <description>Generate corridor-style indoor navigation scenarios.</description>
+  </class>
+  <class type="nav2_scenario_runner::plugins::RoomInspectionGenerator"
+         base_class_type="nav2_scenario_runner::ScenarioGenerator">
+    <description>Generate room inspection scenarios with checkpoints.</description>
+  </class>
+  <class type="nav2_scenario_runner::plugins::CongestionGenerator"
+         base_class_type="nav2_scenario_runner::ScenarioGenerator">
+    <description>Generate congestion event scenarios.</description>
+  </class>
+  <class type="nav2_scenario_runner::plugins::FaultInjectionGenerator"
+         base_class_type="nav2_scenario_runner::ScenarioGenerator">
+    <description>Generate fault injection scenarios.</description>
+  </class>
+</library>

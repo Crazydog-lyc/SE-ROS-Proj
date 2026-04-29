@@ -1,0 +1,26 @@
+safety_monitor:
+  ros__parameters:
+    use_sim_time: True
+    scan_topic: /scan
+    odom_topic: /safety_demo/odom
+    cmd_vel_topic: /cmd_vel
+    base_frame: base_link
+    odom_frame: odom
+    enable_sensor_monitor: True
+    enable_tf_monitor: True
+    enable_blockage_monitor: True
+    startup_grace_period_sec: 20.0
+    tf_startup_grace_period_sec: 25.0
+    tf_require_initial_transform: True
+    sensor_timeout_sec: 20.0
+    tf_timeout_sec: 30.0
+    blockage_window_sec: 3.0
+    min_progress_distance: 0.015
+    min_cmd_vel_linear: 0.05
+    min_cmd_vel_angular: 0.12
+    blockage_cooldown_sec: 180.0
+    auto_cancel_after_recovery_failures: 3
+    recovery_grace_period_sec: 4.0
+    monitor_period_sec: 0.2
+    zero_cmd_publish_period_sec: 0.1
+    recovery_clear_costmaps: True

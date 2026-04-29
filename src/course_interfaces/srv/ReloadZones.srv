@@ -1,0 +1,5 @@
+string zones_file
+---
+bool success
+uint32 loaded_count
+string message

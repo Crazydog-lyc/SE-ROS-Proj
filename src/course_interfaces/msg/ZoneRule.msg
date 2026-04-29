@@ -1,0 +1,10 @@
+string zone_id
+uint8 KEEP_OUT=0
+uint8 HIGH_COST=1
+uint8 SPEED_LIMIT=2
+uint8 zone_type
+string frame_id
+geometry_msgs/Point[] polygon
+uint8 cost
+float32 speed_limit
+bool enabled

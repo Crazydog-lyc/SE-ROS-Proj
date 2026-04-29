@@ -1,0 +1,5 @@
+string strategy
+string reason
+---
+bool accepted
+SafetyState state

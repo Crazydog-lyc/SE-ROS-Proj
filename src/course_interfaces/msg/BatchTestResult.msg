@@ -1,0 +1,6 @@
+string case_id
+bool success
+float32 elapsed_sec
+uint32 completed_waypoints
+uint32 safety_stop_count
+string fail_reason

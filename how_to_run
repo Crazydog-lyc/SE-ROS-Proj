@@ -1,0 +1,191 @@
+推荐直接从仓库根目录使用统一 Dockerfile。
+xhost +local:docker
+non-network local connections being added to access control list
+docker run -it --rm \
+  --name nav2-merged \
+  --network host \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -v $HOME/.Xauthority:/root/.Xauthority:ro \
+  -e XAUTHORITY=/root/.Xauthority \
+  -v ~/workspace/merge:/ws \
+  nav2-merged \
+  bash
+
+
+1. 构建镜像
+
+```bash
+docker build -t nav2-merged .
+```
+
+2. 启动主容器
+
+```bash
+docker run -it --rm \
+  --name nav2-merged \
+  --network host \
+  nav2-merged \
+  bash
+```
+
+容器内先执行：
+
+```bash
+source /opt/ros/humble/setup.bash
+source /ws/install/setup.bash
+```
+
+3. 启动完整栈
+
+```bash
+ros2 launch course_bringup mission_demo.launch.py enable_semantic:=True enable_safety:=True
+```
+
+4. 新开第二个终端进入同一个容器，发送任务
+
+```bash
+docker exec -it nav2-merged bash
+source /opt/ros/humble/setup.bash
+source /ws/install/setup.bash
+ros2 action send_goal /mission/run course_interfaces/action/RunMission \
+'{mission_file: "/ws/src/course_bringup/config/sample_mission.json", max_retry_per_waypoint: 1, allow_skip_waypoint: false}'
+```
+
+5. 新开第三个终端观察任务状态
+
+```bash
+docker exec -it nav2-merged bash
+source /opt/ros/humble/setup.bash
+source /ws/install/setup.bash
+ros2 topic echo /mission/state
+```
+
+6. 生成并运行批量场景
+
+```bash
+docker exec -it nav2-merged bash
+source /opt/ros/humble/setup.bash
+source /ws/install/setup.bash
+ros2 run nav2_scenario_runner generate_cases.py \
+  --profile /ws/src/nav2_scenario_runner/config/batch_profiles/default_batch.yaml \
+  --output-dir /tmp/nav2_cases
+
+ros2 run nav2_scenario_runner run_batch.py \
+  --cases-dir /tmp/nav2_cases \
+  --results-dir /tmp/nav2_results \
+  --launch-package nav2_scenario_runner \
+  --launch-file run_single_case.launch.py \
+  --timeout-sec 180
+```
+
+
+这就说明 `SafetyState` 已经启用了，而且安全节点正常工作：
+
+- `/safety_monitor` 节点在
+- `/safety/state` 能发消息
+- `/safety/get_safety_state` 服务能返回状态
+
+你现在要验证的不是“有没有启动”，而是“它会不会真的介入任务”。最直接的方法分三层。
+
+**1. 验证基础状态流转**
+
+先手动触发一次暂停：
+
+```bash
+ros2 service call /safety/trigger_pause course_interfaces/srv/TriggerPause "{reason: 'manual test'}"
+```
+
+然后看状态：
+
+```bash
+ros2 topic echo /safety/state --once
+```
+
+你应该看到：
+
+- `state_label: PAUSED`
+- `level: 2`
+
+再触发急停：
+
+```bash
+ros2 service call /safety/trigger_emergency_stop course_interfaces/srv/TriggerEmergencyStop "{reason: 'manual estop'}"
+```
+
+再看一次：
+
+```bash
+ros2 topic echo /safety/state --once
+```
+
+你应该看到：
+
+- `state_label: EMERGENCY_STOP`
+- `emergency_latched: true`
+
+这一步验证“安全节点本身能正确改状态”。
+
+**2. 验证 mission_manager 会不会响应 SafetyState**
+
+先启动整套系统并发 mission。任务跑起来后，在另一个终端手动暂停：
+
+```bash
+ros2 service call /safety/trigger_pause course_interfaces/srv/TriggerPause "{reason: 'manual pause during mission'}"
+```
+
+然后观察 mission 状态：
+
+```bash
+ros2 topic echo /mission/state
+```
+
+你要看的是 mission manager 有没有从运行态切到安全暂停相关状态，比如：
+
+- `CANCELING_FOR_SAFETY`
+- `PAUSED_FOR_SAFETY`
+
+如果能看到，就说明 `nav2_mission_manager` 已经订阅并响应了 `/safety/state`。
+
+**3. 验证恢复链路**
+
+暂停后，触发恢复：
+
+```bash
+ros2 service call /safety/request_recovery course_interfaces/srv/RequestRecovery "{strategy: 'replan', reason: 'resume test'}"
+```
+
+再看：
+
+```bash
+ros2 topic echo /safety/state
+ros2 topic echo /mission/state
+```
+
+你应该能看到大致过程：
+
+- `NORMAL` -> `PAUSED`
+- `PAUSED` -> `RECOVERING`
+- `RECOVERING` -> `NORMAL`
+
+如果 mission manager 这边也配合正常，它会在安全清除后继续发 waypoint。
+
+**最推荐的一套最短验证脚本**
+
+终端 1 启动系统并发任务。  
+终端 2 依次执行：
+
+```bash
+ros2 service call /safety/trigger_pause course_interfaces/srv/TriggerPause "{reason: 'manual pause'}"
+ros2 topic echo /safety/state --once
+ros2 service call /safety/request_recovery course_interfaces/srv/RequestRecovery "{strategy: 'replan', reason: 'manual recovery'}"
+ros2 topic echo /safety/state --once
+```
+
+终端 3 观察：
+
+```bash
+ros2 topic echo /mission/state
+```
+
+如果你想验证“自动触发”而不是手动 service，我也可以下一步带你做 `sensor_timeout` 这一条，因为它最容易复现。

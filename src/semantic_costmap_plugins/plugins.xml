@@ -1,0 +1,25 @@
+<library path="semantic_costmap_plugins">
+  <class
+    type="semantic_costmap_plugins::SemanticZoneLayer"
+    base_class_type="nav2_costmap_2d::Layer">
+    <description>
+      Applies semantic zone penalties and keep-out regions to the costmap.
+    </description>
+  </class>
+
+  <class
+    type="semantic_costmap_plugins::PreferredLaneLayer"
+    base_class_type="nav2_costmap_2d::Layer">
+    <description>
+      Adds penalties outside preferred navigation corridors to bias planning.
+    </description>
+  </class>
+
+  <class
+    type="semantic_costmap_plugins::DynamicCongestionLayer"
+    base_class_type="nav2_costmap_2d::Layer">
+    <description>
+      Adds temporary congestion penalties from runtime topic events.
+    </description>
+  </class>
+</library>

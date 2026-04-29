@@ -1,0 +1,7 @@
+builtin_interfaces/Time stamp
+string mission_id
+uint32 current_waypoint_index
+uint32 total_waypoints
+string state
+float32 progress_percent
+string detail

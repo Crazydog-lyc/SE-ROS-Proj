@@ -1,0 +1,11 @@
+mission_action_server:
+  ros__parameters:
+    nav2_ready_timeout_sec: 60.0
+    goal_timeout_sec: 180.0
+    feedback_poll_period_sec: 0.2
+    mission_state_publish_period_sec: 0.5
+    default_max_retry_per_waypoint: 1
+    default_allow_skip_waypoint: false
+    safety_clear_hold_sec: 1.0
+    log_feedback_every_n_ticks: 5
+    nav2_localizer: smoother_server
