@@ -168,6 +168,7 @@ void SemanticZoneLayer::updateCosts(
   int min_i, int min_j, int max_i, int max_j)
 {
   if (!enabled_) {
+    current_ = true;
     return;
   }
 
@@ -213,11 +214,12 @@ void SemanticZoneLayer::updateCosts(
       }
     }
   }
+  current_ = true;
 }
 
 void SemanticZoneLayer::onFootprintChanged()
 {
-  current_ = false;
+  current_ = true;
 }
 
 void SemanticZoneLayer::reset()
