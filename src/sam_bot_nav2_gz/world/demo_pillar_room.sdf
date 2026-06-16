@@ -1,170 +1,386 @@
-<?xml version="1.0" ?>
+        <?xml version="1.0" ?>
 
-<sdf version="1.8">
-  <world name="demo_pillar_room">
-    <gui>
-      <camera name="gzclient_camera">
-        <pose>-0.5 0 12 0 1.45 0</pose>
-      </camera>
-    </gui>
+        <sdf version="1.8">
+          <world name="demo_pillar_room">
+            <gui>
+              <camera name="gzclient_camera">
+                <pose>-0.5 0 12 0 1.45 0</pose>
+              </camera>
+            </gui>
 
-    <physics name="1ms" type="ignored">
-      <max_step_size>0.001</max_step_size>
-      <real_time_factor>1</real_time_factor>
-      <real_time_update_rate>1000</real_time_update_rate>
-    </physics>
+            <physics name="1ms" type="ignored">
+              <max_step_size>0.001</max_step_size>
+              <real_time_factor>1</real_time_factor>
+              <real_time_update_rate>1000</real_time_update_rate>
+            </physics>
 
-    <plugin name="ignition::gazebo::systems::Physics" filename="ignition-gazebo-physics-system"/>
-    <plugin name="ignition::gazebo::systems::UserCommands" filename="ignition-gazebo-user-commands-system"/>
-    <plugin name="ignition::gazebo::systems::SceneBroadcaster" filename="ignition-gazebo-scene-broadcaster-system"/>
-    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
-      <render_engine>ogre2</render_engine>
-    </plugin>
+            <plugin name="ignition::gazebo::systems::Physics" filename="ignition-gazebo-physics-system"/>
+            <plugin name="ignition::gazebo::systems::UserCommands" filename="ignition-gazebo-user-commands-system"/>
+            <plugin name="ignition::gazebo::systems::SceneBroadcaster" filename="ignition-gazebo-scene-broadcaster-system"/>
+            <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
+              <render_engine>ogre2</render_engine>
+            </plugin>
 
-    <scene>
-      <ambient>0.92 0.92 0.92 1</ambient>
-      <background>0.86 0.89 0.93 1</background>
-      <grid>false</grid>
-    </scene>
+            <scene>
+              <ambient>0.92 0.92 0.92 1</ambient>
+              <background>0.86 0.89 0.93 1</background>
+              <grid>false</grid>
+            </scene>
 
-    <light type="directional" name="sun">
-      <cast_shadows>true</cast_shadows>
-      <pose>0 0 10 0 0 0</pose>
-      <diffuse>0.8 0.8 0.8 1</diffuse>
-      <specular>0.2 0.2 0.2 1</specular>
-      <attenuation>
-        <range>1000</range>
-        <constant>0.9</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
-      </attenuation>
-      <direction>-0.4 0.2 -0.9</direction>
-    </light>
+            <light type="directional" name="sun">
+              <cast_shadows>true</cast_shadows>
+              <pose>0 0 10 0 0 0</pose>
+              <diffuse>0.8 0.8 0.8 1</diffuse>
+              <specular>0.2 0.2 0.2 1</specular>
+              <attenuation>
+                <range>1000</range>
+                <constant>0.9</constant>
+                <linear>0.01</linear>
+                <quadratic>0.001</quadratic>
+              </attenuation>
+              <direction>-0.4 0.2 -0.9</direction>
+            </light>
 
-    <model name="ground_plane">
+            <model name="ground_plane">
+              <static>true</static>
+              <link name="link">
+                <collision name="collision">
+                  <geometry>
+                    <plane>
+                      <normal>0 0 1</normal>
+                      <size>40 40</size>
+                    </plane>
+                  </geometry>
+                </collision>
+                <visual name="visual">
+                  <geometry>
+                    <plane>
+                      <normal>0 0 1</normal>
+                      <size>40 40</size>
+                    </plane>
+                  </geometry>
+                  <material>
+                    <ambient>0.96 0.94 0.9 1</ambient>
+                    <diffuse>0.96 0.94 0.9 1</diffuse>
+                    <specular>1 1 1 0</specular>
+                  </material>
+                </visual>
+              </link>
+            </model>
+
+            <model name="sky_cam">
+              <static>true</static>
+              <link name="camera_link">
+                <pose>0 0 12 1.57 1.57 0</pose>
+                <sensor name="sky_cam" type="camera">
+                  <camera>
+                    <horizontal_fov>1.047</horizontal_fov>
+                    <image>
+                      <width>1024</width>
+                      <height>768</height>
+                    </image>
+                    <clip>
+                      <near>0.1</near>
+                      <far>100</far>
+                    </clip>
+                  </camera>
+                  <always_on>1</always_on>
+                  <update_rate>1</update_rate>
+                  <visualize>true</visualize>
+                  <topic>sky_cam</topic>
+                </sensor>
+              </link>
+            </model>
+
+            <model name="north_wall">
+              <static>true</static>
+              <pose>0 2.5 0.6 0 0 0</pose>
+              <link name="link">
+                <collision name="collision">
+                  <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                  <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
+                  <material><ambient>0.75 0.78 0.83 1</ambient></material>
+                </visual>
+              </link>
+            </model>
+
+            <model name="south_wall">
+              <static>true</static>
+              <pose>0 -2.5 0.6 0 0 0</pose>
+              <link name="link">
+                <collision name="collision">
+                  <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                  <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
+                  <material><ambient>0.75 0.78 0.83 1</ambient></material>
+                </visual>
+              </link>
+            </model>
+
+            <model name="west_wall">
+              <static>true</static>
+              <pose>-3.3 0 0.6 0 0 0</pose>
+              <link name="link">
+                <collision name="collision">
+                  <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                  <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
+                  <material><ambient>0.72 0.75 0.8 1</ambient></material>
+                </visual>
+              </link>
+            </model>
+
+            <model name="east_wall">
+              <static>true</static>
+              <pose>3.3 0 0.6 0 0 0</pose>
+              <link name="link">
+                <collision name="collision">
+                  <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
+                </collision>
+                <visual name="visual">
+                  <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
+                  <material><ambient>0.72 0.75 0.8 1</ambient></material>
+                </visual>
+              </link>
+            </model>
+
+            <model name="main_pillar">
+              <static>true</static>
+              <pose>0.0 0.0 0.45 0 0 0</pose>
+              <link name="link">
+                <collision name="collision">
+                  <geometry>
+                    <cylinder><radius>0.40</radius><length>0.9</length></cylinder>
+                  </geometry>
+                </collision>
+                <visual name="visual">
+                  <geometry>
+                    <cylinder><radius>0.40</radius><length>0.9</length></cylinder>
+                  </geometry>
+                  <material><ambient>0.78 0.56 0.42 1</ambient></material>
+                </visual>
+              </link>
+            </model>
+
+        <model name="scatter_box_01">
       <static>true</static>
+      <pose>1.257 0.616 0.260 0 0 -1.739</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <plane>
-              <normal>0 0 1</normal>
-              <size>40 40</size>
-            </plane>
+            <box><size>0.576 0.290 0.519</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <plane>
-              <normal>0 0 1</normal>
-              <size>40 40</size>
-            </plane>
+            <box><size>0.576 0.290 0.519</size></box>
           </geometry>
-          <material>
-            <ambient>0.96 0.94 0.9 1</ambient>
-            <diffuse>0.96 0.94 0.9 1</diffuse>
-            <specular>1 1 1 0</specular>
-          </material>
+          <material><ambient>0.834 0.451 0.523 1</ambient></material>
         </visual>
       </link>
     </model>
 
-    <model name="sky_cam">
+<model name="scatter_box_02">
       <static>true</static>
-      <link name="camera_link">
-        <pose>0 0 12 1.57 1.57 0</pose>
-        <sensor name="sky_cam" type="camera">
-          <camera>
-            <horizontal_fov>1.047</horizontal_fov>
-            <image>
-              <width>1024</width>
-              <height>768</height>
-            </image>
-            <clip>
-              <near>0.1</near>
-              <far>100</far>
-            </clip>
-          </camera>
-          <always_on>1</always_on>
-          <update_rate>1</update_rate>
-          <visualize>true</visualize>
-          <topic>sky_cam</topic>
-        </sensor>
-      </link>
-    </model>
-
-    <model name="north_wall">
-      <static>true</static>
-      <pose>0 2.5 0.6 0 0 0</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
-        </collision>
-        <visual name="visual">
-          <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
-          <material><ambient>0.75 0.78 0.83 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="south_wall">
-      <static>true</static>
-      <pose>0 -2.5 0.6 0 0 0</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
-        </collision>
-        <visual name="visual">
-          <geometry><box><size>7.0 0.2 1.2</size></box></geometry>
-          <material><ambient>0.75 0.78 0.83 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="west_wall">
-      <static>true</static>
-      <pose>-3.3 0 0.6 0 0 0</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
-        </collision>
-        <visual name="visual">
-          <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
-          <material><ambient>0.72 0.75 0.8 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="east_wall">
-      <static>true</static>
-      <pose>3.3 0 0.6 0 0 0</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
-        </collision>
-        <visual name="visual">
-          <geometry><box><size>0.2 5.2 1.2</size></box></geometry>
-          <material><ambient>0.72 0.75 0.8 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="main_pillar">
-      <static>true</static>
-      <pose>0.0 0.0 0.45 0 0 0</pose>
+      <pose>-0.819 -1.442 0.238 0 0 2.873</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <cylinder><radius>0.40</radius><length>0.9</length></cylinder>
+            <box><size>0.599 0.416 0.476</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <cylinder><radius>0.40</radius><length>0.9</length></cylinder>
+            <box><size>0.599 0.416 0.476</size></box>
           </geometry>
-          <material><ambient>0.78 0.56 0.42 1</ambient></material>
+          <material><ambient>0.492 0.725 0.585 1</ambient></material>
         </visual>
       </link>
     </model>
 
-  </world>
-</sdf>
+<model name="scatter_box_03">
+      <static>true</static>
+      <pose>0.998 -1.512 0.365 0 0 0.486</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.652 0.527 0.730</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.652 0.527 0.730</size></box>
+          </geometry>
+          <material><ambient>0.548 0.524 0.407 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_04">
+      <static>true</static>
+      <pose>-1.418 1.709 0.372 0 0 -0.632</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.425 0.514 0.743</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.425 0.514 0.743</size></box>
+          </geometry>
+          <material><ambient>0.669 0.453 0.396 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_05">
+      <static>true</static>
+      <pose>-0.142 1.032 0.378 0 0 0.446</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.406 0.333 0.757</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.406 0.333 0.757</size></box>
+          </geometry>
+          <material><ambient>0.797 0.489 0.413 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_06">
+      <static>true</static>
+      <pose>0.900 1.720 0.294 0 0 1.439</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.492 0.449 0.588</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.492 0.449 0.588</size></box>
+          </geometry>
+          <material><ambient>0.492 0.565 0.495 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_07">
+      <static>true</static>
+      <pose>-0.616 1.734 0.282 0 0 -2.773</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.514 0.365 0.564</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.514 0.365 0.564</size></box>
+          </geometry>
+          <material><ambient>0.564 0.702 0.535 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_08">
+      <static>true</static>
+      <pose>2.301 -1.416 0.363 0 0 -2.152</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.554 0.481 0.727</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.554 0.481 0.727</size></box>
+          </geometry>
+          <material><ambient>0.530 0.634 0.610 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_09">
+      <static>true</static>
+      <pose>-1.810 -1.341 0.329 0 0 2.758</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.647 0.400 0.659</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.647 0.400 0.659</size></box>
+          </geometry>
+          <material><ambient>0.496 0.619 0.473 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_10">
+      <static>true</static>
+      <pose>2.069 1.025 0.233 0 0 -1.205</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.553 0.339 0.466</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.553 0.339 0.466</size></box>
+          </geometry>
+          <material><ambient>0.820 0.744 0.451 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_11">
+      <static>true</static>
+      <pose>2.607 -0.554 0.213 0 0 0.248</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.421 0.313 0.427</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.421 0.313 0.427</size></box>
+          </geometry>
+          <material><ambient>0.730 0.701 0.602 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+<model name="scatter_box_12">
+      <static>true</static>
+      <pose>-2.392 1.219 0.320 0 0 -0.760</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>0.418 0.466 0.640</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.418 0.466 0.640</size></box>
+          </geometry>
+          <material><ambient>0.528 0.496 0.651 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+          </world>
+        </sdf>
