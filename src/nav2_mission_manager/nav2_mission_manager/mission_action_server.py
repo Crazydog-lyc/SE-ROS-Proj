@@ -17,6 +17,8 @@ from typing import Callable, Optional, Tuple
 
 from course_interfaces.action import RunMission
 from course_interfaces.msg import MissionState, SafetyState
+from geometry_msgs.msg import Twist
+from nav2_msgs.srv import ClearEntireCostmap
 import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -53,10 +55,23 @@ class MissionActionServerNode(Node):
         self.declare_parameter("default_max_retry_per_waypoint", 1)
         self.declare_parameter("default_allow_skip_waypoint", False)
         self.declare_parameter("safety_clear_hold_sec", 1.0)
+        self.declare_parameter("safety_backup_enabled", True)
+        self.declare_parameter("safety_backup_speed", 0.08)
+        self.declare_parameter("safety_backup_duration_sec", 1.8)
+        self.declare_parameter("safety_backup_clear_costmaps", True)
         self.declare_parameter("log_feedback_every_n_ticks", 5)
         self.declare_parameter("nav2_localizer", "smoother_server")
 
         self._mission_state_pub = self.create_publisher(MissionState, "/mission/state", 10)
+        self._cmd_vel_pub = self.create_publisher(Twist, "/cmd_vel", 10)
+        self._clear_costmap_clients = {
+            "/local_costmap/clear_entirely_local_costmap": self.create_client(
+                ClearEntireCostmap, "/local_costmap/clear_entirely_local_costmap"
+            ),
+            "/global_costmap/clear_entirely_global_costmap": self.create_client(
+                ClearEntireCostmap, "/global_costmap/clear_entirely_global_costmap"
+            ),
+        }
         self.create_subscription(
             SafetyState,
             "/safety/state",
@@ -73,6 +88,55 @@ class MissionActionServerNode(Node):
             cancel_callback=self._cancel_callback,
             callback_group=self._callback_group,
         )
+
+    def _should_backup_for_safety(self) -> bool:
+        msg, _ = self._get_safety_snapshot()
+        if msg is None:
+            return False
+        return msg.level == SafetyState.STOP_NOW and msg.state_label == "PAUSED"
+
+    def _publish_stop(self, count: int = 3, period_sec: float = 0.05) -> None:
+        stop = Twist()
+        for _ in range(max(count, 1)):
+            self._cmd_vel_pub.publish(stop)
+            time.sleep(period_sec)
+
+    def _clear_costmaps_for_replan(self) -> None:
+        request = ClearEntireCostmap.Request()
+        for service_name, client in self._clear_costmap_clients.items():
+            if not client.wait_for_service(timeout_sec=0.1):
+                self.get_logger().warn(f"[MISSION][SAFETY][M030] Costmap clear service unavailable: {service_name}")
+                continue
+            future = client.call_async(request)
+            deadline = time.monotonic() + 0.5
+            while rclpy.ok() and not future.done() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.get_logger().info(f"[MISSION][SAFETY][M030] Requested costmap clear on {service_name}")
+
+    def _perform_safety_backup_and_replan_prep(self) -> None:
+        if not bool(self.get_parameter("safety_backup_enabled").value):
+            return
+        if not self._should_backup_for_safety():
+            return
+
+        speed = abs(float(self.get_parameter("safety_backup_speed").value))
+        duration = max(0.0, float(self.get_parameter("safety_backup_duration_sec").value))
+        if speed <= 0.0 or duration <= 0.0:
+            return
+
+        self.get_logger().info(
+            "[MISSION][SAFETY][M030] Safety pause detected; backing up before replanning."
+        )
+        cmd = Twist()
+        cmd.linear.x = -speed
+        deadline = time.monotonic() + duration
+        while rclpy.ok() and time.monotonic() < deadline:
+            self._cmd_vel_pub.publish(cmd)
+            time.sleep(0.05)
+        self._publish_stop()
+
+        if bool(self.get_parameter("safety_backup_clear_costmaps").value):
+            self._clear_costmaps_for_replan()
 
     def destroy_node(self) -> bool:
         # TODO[徐梓鸣]：FR-B-05 WAITING_FOR_RESULT 中订阅 /safety/state，STOP_NOW 触发 SAFETY_STOP
@@ -123,7 +187,9 @@ class MissionActionServerNode(Node):
 
     def _publish_state(self, context: MissionExecutionContext) -> None:
         # 给 RViz 面板和 auto_run_mission 脚本看进度
-        msg = MissionState()
+        from course_interfaces.msg import MissionState as MissionStateMsg
+
+        msg = MissionStateMsg()
         msg.stamp = self.get_clock().now().to_msg()
         msg.mission_id = context.mission_id
         msg.current_waypoint_index = min(context.current_index, context.total_waypoints)
@@ -179,6 +245,8 @@ class MissionActionServerNode(Node):
                 poll_period = float(self.get_parameter("feedback_poll_period_sec").value)
                 while time.monotonic() < deadline and navigator.task_active and not navigator.is_task_complete():
                     time.sleep(poll_period)
+                if next_event.type == EventType.SAFETY_STOP:
+                    self._perform_safety_backup_and_replan_prep()
                 next_event = Event(
                     EventType.ACTION_CANCEL_CONFIRMED,
                     "Navigation task canceled.",
@@ -360,7 +428,10 @@ def main(args=None) -> None:
     executor.add_node(node)
     try:
         executor.spin()
+    except KeyboardInterrupt:
+        pass
     finally:
         executor.shutdown()
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()

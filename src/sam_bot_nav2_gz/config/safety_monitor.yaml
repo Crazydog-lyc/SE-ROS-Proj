@@ -26,22 +26,23 @@ safety_monitor:
     enable_sensor_monitor: True
     enable_tf_monitor: True
     enable_blockage_monitor: True
-    enable_obstacle_monitor: False
+    enable_obstacle_monitor: True
     startup_grace_period_sec: 20.0
     tf_startup_grace_period_sec: 15.0
     tf_require_initial_transform: True
     sensor_timeout_sec: 10.0
     tf_timeout_sec: 10.0
-    obstacle_pause_distance: 0.45
-    obstacle_monitor_fov_deg: 60.0
+    obstacle_pause_distance: 0.35
+    obstacle_monitor_fov_deg: 45.0
     obstacle_monitor_requires_motion: True
     obstacle_monitor_motion_grace_sec: 1.0
-    blockage_window_sec: 6.0
-    min_progress_distance: 0.05
+    blockage_window_sec: 4.0
+    min_progress_distance: 0.02
     min_cmd_vel_linear: 0.05
     min_cmd_vel_angular: 0.1
+    blockage_ignore_during_spin: True
     auto_cancel_after_recovery_failures: 2
-    recovery_grace_period_sec: 3.0
+    recovery_grace_period_sec: 2.0
     monitor_period_sec: 0.2
     zero_cmd_publish_period_sec: 0.1
     recovery_clear_costmaps: True

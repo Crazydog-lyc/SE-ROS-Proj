@@ -21,8 +21,19 @@ source install/setup.bash
 
 ## Manual Demo
 
+```
+python3 src/sam_bot_nav2_gz/scripts/generate_scattered_room.py --seed 42 --box-count 12
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch course_bringup mission_demo.launch.py \
+  world_file:=demo_pillar_room.sdf \
+  enable_semantic:=True \
+  enable_safety:=True
+```
+
+
+
 ```bash
-ros2 launch course_bringup mission_demo.launch.py run_headless:=True
+ros2 launch course_bringup mission_demo.launch.py run_headless:=False
 ```
 
 In another terminal:
@@ -37,16 +48,18 @@ ros2 action send_goal /mission/run course_interfaces/action/RunMission \
 ## Batch Scenario Demo
 
 ```bash
-ros2 run nav2_scenario_runner generate_cases.py \
+python3 src/nav2_scenario_runner/scripts/generate_cases.py \
   --profile src/nav2_scenario_runner/config/batch_profiles/default_batch.yaml \
   --output-dir /tmp/nav2_cases
-
-ros2 run nav2_scenario_runner run_batch.py \
+  
+python3 src/nav2_scenario_runner/scripts/run_batch.py \
   --cases-dir /tmp/nav2_cases \
-  --results-dir /tmp/nav2_results \
+  --results-dir /tmp/nav2_results_gui \
   --launch-package nav2_scenario_runner \
   --launch-file run_single_case.launch.py \
-  --timeout-sec 180
+  --timeout-sec 300 \
+  --extra-launch-arg run_headless:=False \
+  --extra-launch-arg enable_safety:=True
 
 ros2 run nav2_scenario_runner summarize_results.py --results-dir /tmp/nav2_results
 ```

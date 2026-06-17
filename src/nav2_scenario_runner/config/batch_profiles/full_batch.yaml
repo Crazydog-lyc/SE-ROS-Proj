@@ -1,0 +1,35 @@
+# Full batch profile for nav2_scenario_runner
+batch_settings:
+  timeout_sec: 900
+  auto_start_delay_sec: 120
+  nav2_startup_delay_sec: 50
+  nav2_ready_timeout_sec: 420
+  run_headless: true
+  enable_safety: false
+  world_file: demo_pillar_room.sdf
+
+cases:
+  - case_id: corridor_seed_001
+    scenario_type: corridor
+    seed: 1
+    waypoint_count: 5
+    enable_semantic_regions: true
+
+  - case_id: room_inspection_seed_002
+    scenario_type: room_inspection
+    seed: 2
+    waypoint_count: 6
+    enable_semantic_regions: true
+
+  - case_id: congestion_seed_003
+    scenario_type: congestion
+    seed: 3
+    waypoint_count: 2
+    enable_semantic_regions: true
+    enable_congestion: true
+
+  - case_id: fault_seed_004
+    scenario_type: fault_injection
+    seed: 4
+    waypoint_count: 3
+    enable_faults: true

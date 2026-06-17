@@ -1,6 +1,4 @@
-        <?xml version="1.0" ?>
-
-        <sdf version="1.8">
+<sdf version="1.8">
           <world name="demo_pillar_room">
             <gui>
               <camera name="gzclient_camera">
@@ -168,216 +166,126 @@
 
         <model name="scatter_box_01">
       <static>true</static>
-      <pose>1.257 0.616 0.260 0 0 -1.739</pose>
+      <pose>2.161 0.070 0.292 0 0 1.328</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.576 0.290 0.519</size></box>
+            <box><size>0.567 0.636 0.584</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.576 0.290 0.519</size></box>
+            <box><size>0.567 0.636 0.584</size></box>
           </geometry>
-          <material><ambient>0.834 0.451 0.523 1</ambient></material>
+          <material><ambient>0.766 0.682 0.672 1</ambient></material>
         </visual>
       </link>
     </model>
 
 <model name="scatter_box_02">
       <static>true</static>
-      <pose>-0.819 -1.442 0.238 0 0 2.873</pose>
+      <pose>-0.805 1.568 0.358 0 0 -1.689</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.599 0.416 0.476</size></box>
+            <box><size>0.624 0.459 0.717</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.599 0.416 0.476</size></box>
+            <box><size>0.624 0.459 0.717</size></box>
           </geometry>
-          <material><ambient>0.492 0.725 0.585 1</ambient></material>
+          <material><ambient>0.548 0.472 0.391 1</ambient></material>
         </visual>
       </link>
     </model>
 
 <model name="scatter_box_03">
       <static>true</static>
-      <pose>0.998 -1.512 0.365 0 0 0.486</pose>
+      <pose>1.144 0.128 0.254 0 0 0.401</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.652 0.527 0.730</size></box>
+            <box><size>0.359 0.629 0.508</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.652 0.527 0.730</size></box>
+            <box><size>0.359 0.629 0.508</size></box>
           </geometry>
-          <material><ambient>0.548 0.524 0.407 1</ambient></material>
+          <material><ambient>0.612 0.514 0.616 1</ambient></material>
         </visual>
       </link>
     </model>
 
 <model name="scatter_box_04">
       <static>true</static>
-      <pose>-1.418 1.709 0.372 0 0 -0.632</pose>
+      <pose>1.759 1.730 0.314 0 0 -2.836</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.425 0.514 0.743</size></box>
+            <box><size>0.352 0.432 0.628</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.425 0.514 0.743</size></box>
+            <box><size>0.352 0.432 0.628</size></box>
           </geometry>
-          <material><ambient>0.669 0.453 0.396 1</ambient></material>
+          <material><ambient>0.674 0.619 0.658 1</ambient></material>
         </visual>
       </link>
     </model>
 
 <model name="scatter_box_05">
       <static>true</static>
-      <pose>-0.142 1.032 0.378 0 0 0.446</pose>
+      <pose>-0.902 -0.822 0.332 0 0 -2.724</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.406 0.333 0.757</size></box>
+            <box><size>0.325 0.332 0.665</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.406 0.333 0.757</size></box>
+            <box><size>0.325 0.332 0.665</size></box>
           </geometry>
-          <material><ambient>0.797 0.489 0.413 1</ambient></material>
+          <material><ambient>0.799 0.719 0.394 1</ambient></material>
         </visual>
       </link>
     </model>
 
 <model name="scatter_box_06">
       <static>true</static>
-      <pose>0.900 1.720 0.294 0 0 1.439</pose>
+      <pose>-1.708 1.185 0.325 0 0 -1.531</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.492 0.449 0.588</size></box>
+            <box><size>0.564 0.646 0.650</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.492 0.449 0.588</size></box>
+            <box><size>0.564 0.646 0.650</size></box>
           </geometry>
-          <material><ambient>0.492 0.565 0.495 1</ambient></material>
+          <material><ambient>0.778 0.597 0.579 1</ambient></material>
         </visual>
       </link>
     </model>
 
 <model name="scatter_box_07">
       <static>true</static>
-      <pose>-0.616 1.734 0.282 0 0 -2.773</pose>
+      <pose>2.130 0.911 0.283 0 0 0.736</pose>
       <link name="link">
         <collision name="collision">
           <geometry>
-            <box><size>0.514 0.365 0.564</size></box>
+            <box><size>0.594 0.370 0.567</size></box>
           </geometry>
         </collision>
         <visual name="visual">
           <geometry>
-            <box><size>0.514 0.365 0.564</size></box>
+            <box><size>0.594 0.370 0.567</size></box>
           </geometry>
-          <material><ambient>0.564 0.702 0.535 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-<model name="scatter_box_08">
-      <static>true</static>
-      <pose>2.301 -1.416 0.363 0 0 -2.152</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>0.554 0.481 0.727</size></box>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box><size>0.554 0.481 0.727</size></box>
-          </geometry>
-          <material><ambient>0.530 0.634 0.610 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-<model name="scatter_box_09">
-      <static>true</static>
-      <pose>-1.810 -1.341 0.329 0 0 2.758</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>0.647 0.400 0.659</size></box>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box><size>0.647 0.400 0.659</size></box>
-          </geometry>
-          <material><ambient>0.496 0.619 0.473 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-<model name="scatter_box_10">
-      <static>true</static>
-      <pose>2.069 1.025 0.233 0 0 -1.205</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>0.553 0.339 0.466</size></box>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box><size>0.553 0.339 0.466</size></box>
-          </geometry>
-          <material><ambient>0.820 0.744 0.451 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-<model name="scatter_box_11">
-      <static>true</static>
-      <pose>2.607 -0.554 0.213 0 0 0.248</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>0.421 0.313 0.427</size></box>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box><size>0.421 0.313 0.427</size></box>
-          </geometry>
-          <material><ambient>0.730 0.701 0.602 1</ambient></material>
-        </visual>
-      </link>
-    </model>
-
-<model name="scatter_box_12">
-      <static>true</static>
-      <pose>-2.392 1.219 0.320 0 0 -0.760</pose>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <box><size>0.418 0.466 0.640</size></box>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <box><size>0.418 0.466 0.640</size></box>
-          </geometry>
-          <material><ambient>0.528 0.496 0.651 1</ambient></material>
+          <material><ambient>0.803 0.592 0.639 1</ambient></material>
         </visual>
       </link>
     </model>

@@ -1,21 +1,8 @@
-# ========================================================================
-# 文件: src/nav2_scenario_runner/launch/run_single_case.launch.py
-# 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
-# ========================================================================
-#
-# 【AI-PROMPT】
-# 帮我 scaffold 一个 nav2_scenario_runner C++ 包：pluginlib 注册 ScenarioGenerator 插件，包含
-# generator_registry、scenario_types、scenario_serializer，再写 generate_scenario_node 和 Python
-# 侧 generate_cases/run_batch 脚本入口。要求固定 random seed、每个 case 输出独立目录；具体 corridor/room
-#
-# 【AI-SCOPE】import · declare · register · 插件/接口空壳
-# ========================================================================
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
-
 
 
 def generate_launch_description():
@@ -31,6 +18,10 @@ def generate_launch_description():
             DeclareLaunchArgument("safety_params_file", default_value=""),
             DeclareLaunchArgument("max_retry_per_waypoint", default_value="1"),
             DeclareLaunchArgument("allow_skip_waypoint", default_value="false"),
+            DeclareLaunchArgument("nav2_ready_timeout_sec", default_value="420.0"),
+            DeclareLaunchArgument("server_timeout_sec", default_value="420.0"),
+            DeclareLaunchArgument("auto_start_delay_sec", default_value="120.0"),
+            DeclareLaunchArgument("nav2_startup_delay_sec", default_value="50.0"),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     PathJoinSubstitution(
@@ -51,6 +42,14 @@ def generate_launch_description():
                         "max_retry_per_waypoint"
                     ),
                     "allow_skip_waypoint": LaunchConfiguration("allow_skip_waypoint"),
+                    "nav2_ready_timeout_sec": LaunchConfiguration(
+                        "nav2_ready_timeout_sec"
+                    ),
+                    "server_timeout_sec": LaunchConfiguration("server_timeout_sec"),
+                    "auto_start_delay_sec": LaunchConfiguration("auto_start_delay_sec"),
+                    "nav2_startup_delay_sec": LaunchConfiguration(
+                        "nav2_startup_delay_sec"
+                    ),
                 }.items(),
             ),
         ]

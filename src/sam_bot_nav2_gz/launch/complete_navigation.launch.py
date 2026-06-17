@@ -1,3 +1,6 @@
+import os
+import sys
+
 import launch
 from launch_ros.actions import Node
 from launch.actions import (
@@ -6,6 +9,7 @@ from launch.actions import (
     LogInfo,
     RegisterEventHandler,
     TimerAction,
+    OpaqueFunction,
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
@@ -13,12 +17,14 @@ from launch.substitutions import (
     PathJoinSubstitution,
     NotSubstitution,
 )
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch.events.process import ProcessIO
-from launch.event_handlers import OnProcessIO
+from launch.event_handlers import OnProcessIO, OnProcessStart
 
-# Create event handler that waits for an output message and then returns actions
+sys.path.insert(0, os.path.dirname(__file__))
+from nav2_params_utils import patch_nav2_params  # noqa: E402
+
+
 def on_matching_output(matcher: str, result: launch.SomeActionsType):
     def on_output(event: ProcessIO):
         for line in event.text.decode().splitlines():
@@ -28,21 +34,18 @@ def on_matching_output(matcher: str, result: launch.SomeActionsType):
     return on_output
 
 
-# Lanch the robot and the navigation stack
-
-
-def generate_launch_description():
-    # Messages are from: https://navigation.ros.org/setup_guides/sensors/setup_sensors.html#launching-nav2
+def _launch_setup(context, *args, **kwargs):
     diff_drive_loaded_message = (
         "Successfully loaded controller diff_drive_base_controller into state active"
     )
-    toolbox_ready_message = "Registering sensor"
     navigation_ready_message = "Creating bond timer"
 
     run_headless = LaunchConfiguration("run_headless")
     world_file = LaunchConfiguration("world_file")
+    nav2_startup_delay_sec = LaunchConfiguration("nav2_startup_delay_sec")
+    params_file = LaunchConfiguration("params_file").perform(context)
+    patched_params_file = patch_nav2_params(params_file)
 
-    # Including launchfiles with execute process because i didn't find another way to wait for a certain messages befor starting the next launchfile
     bringup = ExecuteProcess(
         name="launch_bringup",
         cmd=[
@@ -57,8 +60,12 @@ def generate_launch_description():
             ),
             "use_rviz:=false",
             ["run_headless:=", run_headless],
-            "use_localization:=false",
-            ["world_file:=", world_file]
+            "use_localization:=true",
+            ["world_file:=", world_file],
+            ["spawn_x:=", LaunchConfiguration("spawn_x")],
+            ["spawn_y:=", LaunchConfiguration("spawn_y")],
+            ["spawn_z:=", LaunchConfiguration("spawn_z")],
+            ["spawn_yaw:=", LaunchConfiguration("spawn_yaw")],
         ],
         shell=False,
         output="screen",
@@ -107,7 +114,7 @@ def generate_launch_description():
                 ]
             ),
             "use_sim_time:=True",
-            ["params_file:=", LaunchConfiguration('params_file')]
+            f"params_file:={patched_params_file}",
         ],
         shell=False,
         output="screen",
@@ -121,24 +128,17 @@ def generate_launch_description():
         arguments=["-d", LaunchConfiguration("rvizconfig")],
     )
     waiting_navigation = RegisterEventHandler(
-        OnProcessIO(
+        OnProcessStart(
             target_action=toolbox,
-            on_stdout=on_matching_output(
-                # diff_drive_loaded_message,
-                toolbox_ready_message,
-                [
-                    LogInfo(msg="SLAM Toolbox loaded. Starting navigation..."),
-                    # TODO Debug: Navigation fails to start if it's launched right after the slam_toolbox
-                    TimerAction(
-                        period=20.0,
-                        actions=[navigation],
-                    ),
-                    rviz_node,
-                ],
-            ),
+            on_start=[
+                LogInfo(msg="SLAM Toolbox started; scheduling Nav2 launch..."),
+                TimerAction(
+                    period=nav2_startup_delay_sec,
+                    actions=[navigation, rviz_node],
+                ),
+            ],
         )
     )
-
     waiting_success = RegisterEventHandler(
         OnProcessIO(
             target_action=navigation,
@@ -151,11 +151,18 @@ def generate_launch_description():
         )
     )
 
+    return [bringup, waiting_toolbox, waiting_navigation, waiting_success]
+
+
+def generate_launch_description():
     return launch.LaunchDescription(
         [
             DeclareLaunchArgument(
                 "params_file",
-                default_value=[FindPackageShare("sam_bot_nav2_gz"), "/config/nav2_params.yaml"],
+                default_value=[
+                    FindPackageShare("sam_bot_nav2_gz"),
+                    "/config/nav2_params.yaml",
+                ],
                 description="Full path to the ROS2 parameters file to use for all launched nodes",
             ),
             DeclareLaunchArgument(
@@ -175,9 +182,15 @@ def generate_launch_description():
                 name="world_file",
                 default_value="empty.sdf",
             ),
-            bringup,
-            waiting_toolbox,
-            waiting_navigation,
-            waiting_success,
+            DeclareLaunchArgument(name="spawn_x", default_value="-2.0"),
+            DeclareLaunchArgument(name="spawn_y", default_value="0.0"),
+            DeclareLaunchArgument(name="spawn_z", default_value="1.0"),
+            DeclareLaunchArgument(name="spawn_yaw", default_value="0.0"),
+            DeclareLaunchArgument(
+                name="nav2_startup_delay_sec",
+                default_value="50.0",
+                description="Seconds after SLAM toolbox starts before launching Nav2.",
+            ),
+            OpaqueFunction(function=_launch_setup),
         ]
     )

@@ -2,11 +2,14 @@ import launch
 from launch.actions import (
     ExecuteProcess,
     DeclareLaunchArgument,
+    LogInfo,
     RegisterEventHandler,
     SetEnvironmentVariable,
+    TimerAction,
 )
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
+from launch.events.process import ProcessExited
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -20,6 +23,14 @@ from launch_ros.substitutions import FindPackageShare
 import launch_ros
 import os
 from launch.substitutions import PathJoinSubstitution
+
+
+def _on_success(next_action):
+    def handler(event: ProcessExited, context):
+        if event.returncode == 0:
+            return next_action
+
+    return handler
 
 
 def generate_launch_description():
@@ -46,7 +57,10 @@ def generate_launch_description():
         package="robot_state_publisher",
         executable="robot_state_publisher",
         parameters=[
-            {"robot_description": Command(["xacro ", LaunchConfiguration("model")])}
+            {
+                "robot_description": Command(["xacro ", LaunchConfiguration("model")]),
+                "use_sim_time": use_sim_time,
+            }
         ],
     )
 
@@ -110,9 +124,13 @@ def generate_launch_description():
             "-topic",
             "robot_description",
             "-z",
-            "1.0",
+            LaunchConfiguration("spawn_z"),
             "-x",
-            "-2.0",
+            LaunchConfiguration("spawn_x"),
+            "-y",
+            LaunchConfiguration("spawn_y"),
+            "-Y",
+            LaunchConfiguration("spawn_yaw"),
             "--ros-args",
             "--log-level",
             log_level,
@@ -132,35 +150,42 @@ def generate_launch_description():
             # Clock message is necessary for the diff_drive_controller to accept commands https://github.com/ros-controls/gz_ros2_control/issues/106
             "/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock",
         ],
+        parameters=[{"use_sim_time": use_sim_time}],
         output="screen",
     )
 
-    load_joint_state_controller = ExecuteProcess(
-        name="activate_joint_state_broadcaster",
-        cmd=[
-            "ros2",
-            "control",
-            "load_controller",
-            "--set-state",
-            "active",
+    load_joint_state_controller = Node(
+        package="controller_manager",
+        executable="spawner",
+        name="joint_state_broadcaster_spawner",
+        arguments=[
             "joint_state_broadcaster",
+            "--controller-manager-timeout",
+            "120",
+            "--switch-timeout",
+            "120",
         ],
-        shell=False,
+        parameters=[{"use_sim_time": use_sim_time}],
         output="screen",
     )
 
-    load_joint_trajectory_controller = ExecuteProcess(
-        name="activate_diff_drive_base_controller",
-        cmd=[
-            "ros2",
-            "control",
-            "load_controller",
-            "--set-state",
-            "active",
+    load_joint_trajectory_controller = Node(
+        package="controller_manager",
+        executable="spawner",
+        name="diff_drive_base_controller_spawner",
+        arguments=[
             "diff_drive_base_controller",
+            "--controller-manager-timeout",
+            "120",
+            "--switch-timeout",
+            "120",
         ],
-        shell=False,
+        parameters=[{"use_sim_time": use_sim_time}],
         output="screen",
+    )
+
+    diff_drive_loaded_log = LogInfo(
+        msg="Successfully loaded controller diff_drive_base_controller into state active"
     )
 
     relay_odom = Node(
@@ -171,6 +196,7 @@ def generate_launch_description():
             {
                 "input_topic": "/diff_drive_base_controller/odom",
                 "output_topic": "/odom",
+                "use_sim_time": use_sim_time,
             }
         ],
         output="screen",
@@ -184,6 +210,7 @@ def generate_launch_description():
             {
                 "input_topic": "/cmd_vel",
                 "output_topic": "/diff_drive_base_controller/cmd_vel_unstamped",
+                "use_sim_time": use_sim_time,
             }
         ],
         output="screen",
@@ -214,6 +241,10 @@ def generate_launch_description():
                 name="world_file",
                 default_value="empty.sdf",
             ),
+            DeclareLaunchArgument(name="spawn_x", default_value="-2.0"),
+            DeclareLaunchArgument(name="spawn_y", default_value="0.0"),
+            DeclareLaunchArgument(name="spawn_z", default_value="1.0"),
+            DeclareLaunchArgument(name="spawn_yaw", default_value="0.0"),
             DeclareLaunchArgument(
                 name="rvizconfig",
                 default_value=default_rviz_config_path,
@@ -252,13 +283,24 @@ def generate_launch_description():
             RegisterEventHandler(
                 event_handler=OnProcessExit(
                     target_action=spawn_entity,
-                    on_exit=[load_joint_state_controller],
+                    on_exit=[
+                        TimerAction(
+                            period=22.0,
+                            actions=[load_joint_state_controller],
+                        )
+                    ],
                 )
             ),
             RegisterEventHandler(
                 event_handler=OnProcessExit(
                     target_action=load_joint_state_controller,
-                    on_exit=[load_joint_trajectory_controller],
+                    on_exit=_on_success([load_joint_trajectory_controller]),
+                )
+            ),
+            RegisterEventHandler(
+                event_handler=OnProcessExit(
+                    target_action=load_joint_trajectory_controller,
+                    on_exit=_on_success([diff_drive_loaded_log]),
                 )
             ),
             relay_odom,

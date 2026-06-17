@@ -1,14 +1,10 @@
-# ========================================================================
-# 文件: src/course_interfaces/msg/SafetyState.msg
-# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
-# ========================================================================
-#
-# 【AI-PROMPT】
-# 帮我定义 SafetyState.msg：level 枚举（SAFE/PAUSE/STOP_NOW 等）、reason、source 字段，给 mission_manager
-# 和 safety_monitor 联调用，注释说明各 level 触发条件。
-#
-# 【AI-SCOPE】import · declare · register · 插件/接口空壳
-# ========================================================================
+# Safety level for mission_manager / safety_monitor integration
+uint8 SAFE=0
+uint8 SLOW_DOWN=1
+uint8 STOP_NOW=2
+
+uint8 level
+builtin_interfaces/Time stamp
 string state_label
 float32 min_range
 string source

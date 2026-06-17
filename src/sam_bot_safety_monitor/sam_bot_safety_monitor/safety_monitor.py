@@ -89,6 +89,7 @@ class SafetyMonitor(Node):
         self.declare_parameter("min_progress_distance", 0.05)
         self.declare_parameter("min_cmd_vel_linear", 0.05)
         self.declare_parameter("min_cmd_vel_angular", 0.1)
+        self.declare_parameter("blockage_ignore_during_spin", True)
         self.declare_parameter("blockage_cooldown_sec", 0.0)
         # --- recovery 策略 ---
         self.declare_parameter("auto_cancel_after_recovery_failures", 2)
@@ -150,6 +151,9 @@ class SafetyMonitor(Node):
         )
         self.min_cmd_vel_angular = float(
             self.get_parameter("min_cmd_vel_angular").value
+        )
+        self.blockage_ignore_during_spin = bool(
+            self.get_parameter("blockage_ignore_during_spin").value
         )
         self.blockage_cooldown_sec = float(
             self.get_parameter("blockage_cooldown_sec").value
@@ -230,6 +234,8 @@ class SafetyMonitor(Node):
         self.blockage_reference_position = None
         self.nonzero_cmd_wall_since = None
         self.current_cmd_is_nonzero = False
+        self.last_cmd_linear = 0.0
+        self.last_cmd_angular = 0.0
         self.recovery_deadline_wall = None
         self.recovery_attempts = 0
         self.blockage_cooldown_deadline_wall = None
@@ -271,6 +277,8 @@ class SafetyMonitor(Node):
         # 记录什么时候开始“真的在走”，堵塞检测需要这段窗口
         linear = abs(msg.linear.x)
         angular = abs(msg.angular.z)
+        self.last_cmd_linear = linear
+        self.last_cmd_angular = angular
         now = time.monotonic()
         is_nonzero = (
             linear >= self.min_cmd_vel_linear or angular >= self.min_cmd_vel_angular
@@ -360,6 +368,7 @@ class SafetyMonitor(Node):
         self._check_obstacle_proximity(now_wall)
         self._check_blockage(now_wall)
         self._check_recovery_window(now_wall)
+        self._check_pause_clear()
 
     # 扫描前方 FOV 内最近有效 range
     def _compute_front_obstacle_distance(
@@ -489,12 +498,25 @@ class SafetyMonitor(Node):
                     detail=f"Missing transform {self.odom_frame} -> {self.base_frame}",
                 )
 
+    def _is_spinning_in_place(self) -> bool:
+        """Nav2 spin recovery: angular cmd dominates, little linear motion."""
+        return (
+            self.last_cmd_angular >= self.min_cmd_vel_angular
+            and self.last_cmd_linear < self.min_cmd_vel_linear
+        )
+
     # cmd_vel 有但 odom 几乎不动 -> recovery
     def _check_blockage(self, now_wall: float) -> None:
         if not self.enable_blockage_monitor:
             return
 
         if self.blockage_window_sec <= 0:
+            return
+
+        if self.blockage_ignore_during_spin and self._is_spinning_in_place():
+            # Spin 脱困时 odom 位移小是正常的，不要 cancel Nav2 recovery
+            self.nonzero_cmd_wall_since = now_wall
+            self.blockage_reference_position = self.last_odom_position
             return
 
         if (
@@ -554,6 +576,23 @@ class SafetyMonitor(Node):
             reason="Recovery window completed",
             source="recovery",
             detail="No new safety fault detected during recovery grace period",
+        )
+
+    def _check_pause_clear(self) -> None:
+        if self.current_state != STATE_PAUSED:
+            return
+        if self.current_source == "manual":
+            return
+        if self._has_active_fault():
+            return
+
+        self.recovery_attempts = 0
+        self._start_blockage_cooldown()
+        self._set_state(
+            STATE_NORMAL,
+            reason="Safety pause cleared",
+            source="safety_clear",
+            detail="No active safety fault remains after backing away",
         )
 
         # recovery 窗口结束时检查故障是否还在

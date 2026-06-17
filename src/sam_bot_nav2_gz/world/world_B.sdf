@@ -2,8 +2,6 @@
 <!-- 文件: src/sam_bot_nav2_gz/world/world_B.sdf | 负责人: 陆华均 | FR-A | PPT: 第21-22页 场景生成 -->
 <!-- 【AI-PROMPT】 场景变体 B：另一套室内布局（与 world_A 不同障碍分布），固定尺寸便于 Nav2 复现。... -->
 <!-- ======================================== -->
-<?xml version="1.0" ?>
-
 <sdf version="1.8">
   <world name="world_B">
     <gui>

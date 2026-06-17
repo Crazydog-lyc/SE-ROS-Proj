@@ -1,41 +1,28 @@
-# ========================================================================
-# 文件: src/nav2_scenario_runner/config/batch_profiles/default_batch.yaml
-# 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
-# ========================================================================
-#
-# 【AI-PROMPT】
-# batch profile yaml：generators 列表、case 矩阵（scenario_type x seed）、output 目录模板，供
-# generate_cases.py 读取。
-#
-# 【AI-SCOPE】import · declare · register · 插件/接口空壳
-# ========================================================================
-# =============================================================================
-# src/nav2_scenario_runner/config/batch_profiles/default_batch.yaml  |  负责人: 陆华均
-# =============================================================================
-# 【AI】提示词: "batch profile yaml：generators 列表、case 矩阵（scenario_type x seed）、output 目录模板，供 generate_cases.py 读取。"
-# TODO[陆华均]： 参数调优与场景配置
+# Two-round demo batch profile for nav2_scenario_runner
+batch_settings:
+  timeout_sec: 900
+  auto_start_delay_sec: 75
+  nav2_startup_delay_sec: 50
+  nav2_ready_timeout_sec: 420
+  run_headless: true
+  enable_safety: true
+  world_file: demo_pillar_room.sdf
+
 cases:
-  - case_id: corridor_seed_001
+  - case_id: pillar_round_001
     scenario_type: corridor
     seed: 1
-    waypoint_count: 5
-    enable_semantic_regions: true
-
-  - case_id: room_inspection_seed_002
-    scenario_type: room_inspection
-    seed: 2
-    waypoint_count: 6
-    enable_semantic_regions: true
-
-  - case_id: congestion_seed_003
-    scenario_type: congestion
-    seed: 3
     waypoint_count: 2
     enable_semantic_regions: true
-    enable_congestion: true
+    mission_waypoints:
+      - {x: 1.20, y: -1.65, yaw: 0.0}
+      - {x: 3.75, y: 1.10, yaw: 0.0}
 
-  - case_id: fault_seed_004
-    scenario_type: fault_injection
-    seed: 4
-    waypoint_count: 3
-    enable_faults: true
+  - case_id: pillar_round_002
+    scenario_type: corridor
+    seed: 2
+    waypoint_count: 2
+    enable_semantic_regions: true
+    mission_waypoints:
+      - {x: 1.00, y: -1.65, yaw: 0.0}
+      - {x: 3.65, y: -1.15, yaw: 0.0}

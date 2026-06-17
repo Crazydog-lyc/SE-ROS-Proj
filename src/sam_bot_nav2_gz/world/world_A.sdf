@@ -2,8 +2,6 @@
 <!-- 文件: src/sam_bot_nav2_gz/world/world_A.sdf | 负责人: 陆华均 | FR-A | PPT: 第21-22页 场景生成 -->
 <!-- 【AI-PROMPT】 场景变体 A：在 empty world 基础上加简单室内布局，供 scenario_runner 多场景对比。... -->
 <!-- ======================================== -->
-<?xml version="1.0" ?>
-
 <sdf version="1.8">
   <world name="world_A">
     <gui>

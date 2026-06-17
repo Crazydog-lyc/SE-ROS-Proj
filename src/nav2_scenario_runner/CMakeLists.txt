@@ -66,6 +66,8 @@ install(
     scripts/generate_cases.py
     scripts/run_batch.py
     scripts/summarize_results.py
+    scripts/run_batch_gui.sh
+    scripts/run_batch.sh
   DESTINATION lib/${PROJECT_NAME}
 )
 

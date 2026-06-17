@@ -1,0 +1,42 @@
+
+<!--
+  Recovery tuned for near-wall stuck:
+  keep the current path stable; only replan slowly or after recovery clears costmaps.
+  Recovery backs up first, then makes a small heading nudge.
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="8" name="NavigateRecovery">
+      <PipelineSequence name="NavigateWithConservativeReplanning">
+        <RateController hz="0.05">
+          <RecoveryNode number_of_retries="1" name="ComputePathToPose">
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="1" name="FollowPath">
+          <FollowPath path="{path}" controller_id="FollowPath"/>
+          <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+        </RecoveryNode>
+      </PipelineSequence>
+      <ReactiveFallback name="RecoveryFallback">
+        <GoalUpdated/>
+        <RoundRobin name="RecoveryActions">
+          <Sequence name="ClearingActions">
+            <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
+          </Sequence>
+          <Sequence name="BackupThenNudgeCW">
+            <BackUp backup_dist="0.25" backup_speed="0.08" time_allowance="12"/>
+            <Spin spin_dist="0.35" time_allowance="8"/>
+          </Sequence>
+          <Sequence name="BackupThenNudgeCCW">
+            <BackUp backup_dist="0.25" backup_speed="0.08" time_allowance="12"/>
+            <Spin spin_dist="-0.35" time_allowance="8"/>
+          </Sequence>
+          <Wait wait_duration="2"/>
+        </RoundRobin>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>

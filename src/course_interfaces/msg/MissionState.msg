@@ -9,6 +9,7 @@
 #
 # 【AI-SCOPE】import · declare · register · 插件/接口空壳
 # ========================================================================
+builtin_interfaces/Time stamp
 string mission_id
 uint32 current_waypoint_index
 uint32 total_waypoints

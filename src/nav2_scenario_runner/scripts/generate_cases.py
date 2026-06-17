@@ -1,3 +1,4 @@
+#!/usr/bin/python3.10
 # ========================================================================
 # 文件: src/nav2_scenario_runner/scripts/generate_cases.py
 # 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
@@ -9,11 +10,11 @@
 #
 # 【AI-SCOPE】import · declare · register · 插件/接口空壳
 # ========================================================================
-#!/usr/bin/env python3
 # 【批跑说明】输出目录结构：cases/<case_id>/{world,mission,metrics}
 import argparse
 import csv
 import json
+import math
 import pathlib
 import subprocess
 import sys
@@ -29,6 +30,42 @@ GENERATOR_MAP = {
     "congestion": "nav2_scenario_runner::plugins::CongestionGenerator",
     "fault_injection": "nav2_scenario_runner::plugins::FaultInjectionGenerator",
 }
+
+SAFE_GOAL_X_MIN = 0.6
+SAFE_GOAL_X_MAX = 5.0
+SAFE_GOAL_Y_MIN = -2.0
+SAFE_GOAL_Y_MAX = 2.0
+MIN_WAYPOINT_SPACING = 0.45
+PILLAR_ROOM_WAYPOINTS = [
+    {"x": 1.2, "y": -1.65, "yaw": 0.0},
+    {"x": 4.45, "y": 1.25, "yaw": 0.0},
+]
+
+
+def _clamp(value: float, lower: float, upper: float) -> float:
+    return max(lower, min(upper, value))
+
+
+def _append_goal(
+    mission: Dict[str, Any],
+    goal: Dict[str, float],
+    yaw: float,
+    last_goal: Dict[str, float] | None,
+) -> Dict[str, float] | None:
+    if last_goal is not None:
+        last_dx = goal["x"] - last_goal["x"]
+        last_dy = goal["y"] - last_goal["y"]
+        if (last_dx * last_dx + last_dy * last_dy) < MIN_WAYPOINT_SPACING ** 2:
+            return last_goal
+    mission["waypoints"].append(
+        {
+            "id": f"W{len(mission['waypoints']) + 1}",
+            "x": goal["x"],
+            "y": goal["y"],
+            "yaw": yaw,
+        }
+    )
+    return goal
 
 
 def build_ros_args(case: Dict[str, Any], output_dir: pathlib.Path) -> List[str]:
@@ -59,23 +96,37 @@ def _load_yaml(path: pathlib.Path) -> Dict[str, Any]:
         return yaml.safe_load(handle) or {}
 
 
-def _write_mission_file(case_id: str, waypoints_path: pathlib.Path, output_dir: pathlib.Path) -> pathlib.Path:
-    # scenario 插件输出的是 yaml waypoint，这里转成 mission_manager 要的 json
+def _write_mission_file(
+    case_id: str,
+    scenario_path: pathlib.Path,
+    waypoints_path: pathlib.Path,
+    output_dir: pathlib.Path,
+    case: Dict[str, Any],
+) -> pathlib.Path:
+    scenario = _load_yaml(scenario_path)
     payload = _load_yaml(waypoints_path)
     mission = {
         "mission_id": f"{case_id}_mission",
         "frame_id": "map",
         "waypoints": [],
     }
-    for index, waypoint in enumerate(payload.get("waypoints", []), start=1):
-        mission["waypoints"].append(
+    start_pose = scenario.get("start_pose", {}) or {}
+    spawn_yaw = float(start_pose.get("yaw", 0.0))
+    mission_waypoints = case.get("mission_waypoints") or PILLAR_ROOM_WAYPOINTS
+    last_goal = None
+    for waypoint in mission_waypoints:
+        last_goal = _append_goal(
+            mission,
             {
-                "id": f"W{index}",
-                "x": float(waypoint["x"]),
-                "y": float(waypoint["y"]),
-                "yaw": float(waypoint.get("yaw", 0.0)),
-            }
+                "x": _clamp(float(waypoint["x"]), SAFE_GOAL_X_MIN, SAFE_GOAL_X_MAX),
+                "y": _clamp(float(waypoint["y"]), SAFE_GOAL_Y_MIN, SAFE_GOAL_Y_MAX),
+            },
+            float(waypoint.get("yaw", 0.0)) - spawn_yaw,
+            last_goal,
         )
+
+    if not mission["waypoints"]:
+        mission["waypoints"].append({"id": "W1", "x": 0.0, "y": 0.0, "yaw": 0.0})
 
     mission_path = output_dir / f"{case_id}_mission.json"
     with open(mission_path, "w", encoding="utf-8") as handle:
@@ -83,34 +134,67 @@ def _write_mission_file(case_id: str, waypoints_path: pathlib.Path, output_dir: 
     return mission_path
 
 
-def _build_semantic_zone(region: Dict[str, Any]) -> Dict[str, Any]:
+def _build_semantic_zone(
+    region: Dict[str, Any],
+    spawn_x: float,
+    spawn_y: float,
+    spawn_yaw: float,
+) -> Dict[str, Any]:
+    world_dx = float(region.get("x", 0.0)) - spawn_x
+    world_dy = float(region.get("y", 0.0)) - spawn_y
+    cos_yaw = math.cos(-spawn_yaw)
+    sin_yaw = math.sin(-spawn_yaw)
     return {
         "enabled": bool(region.get("enabled", True)),
         "mode": "all",
         "shape": "rectangle",
-        "x": float(region.get("x", 0.0)),
-        "y": float(region.get("y", 0.0)),
+        "x": world_dx * cos_yaw - world_dy * sin_yaw,
+        "y": world_dx * sin_yaw + world_dy * cos_yaw,
         "width": float(region.get("width", 0.0)),
         "height": float(region.get("height", 0.0)),
-        "yaw": float(region.get("yaw", 0.0)),
+        "yaw": float(region.get("yaw", 0.0)) - spawn_yaw,
         "cost": int(region.get("cost", 0)),
         "apply_to_unknown": False,
     }
 
 
-def _write_semantic_overlay(case_id: str, semantic_path: pathlib.Path, output_dir: pathlib.Path) -> pathlib.Path:
+def _write_semantic_overlay(
+    case_id: str,
+    scenario_path: pathlib.Path,
+    semantic_path: pathlib.Path,
+    output_dir: pathlib.Path,
+) -> pathlib.Path:
     semantic_share = pathlib.Path(get_package_share_directory("semantic_costmap_plugins"))
     base_config = _load_yaml(semantic_share / "config" / "nav2_params_semantic.yaml")
+    scenario = _load_yaml(scenario_path)
     semantic_payload = _load_yaml(semantic_path)
 
-    layer = base_config["global_costmap"]["global_costmap"]["ros__parameters"]["semantic_zone_layer"]
+    start_pose = scenario.get("start_pose", {}) or {}
+    spawn_x = float(start_pose.get("x", -2.0))
+    spawn_y = float(start_pose.get("y", 0.0))
+    spawn_yaw = float(start_pose.get("yaw", 0.0))
+
+    global_params = base_config["global_costmap"]["global_costmap"]["ros__parameters"]
+    global_params["rolling_window"] = True
+    global_params["width"] = int(math.ceil(float(scenario.get("map_width", 12.0)) + 4.0))
+    global_params["height"] = int(math.ceil(float(scenario.get("map_height", 12.0)) + 4.0))
+    global_params["track_unknown_space"] = False
+    global_params["plugins"] = ["obstacle_layer", "semantic_zone_layer", "inflation_layer"]
+    global_params.pop("static_layer", None)
+
+    layer = global_params["semantic_zone_layer"]
     zone_names: List[str] = []
     zones: Dict[str, Dict[str, Any]] = {}
     for collection_name in ("keepout_regions", "soft_cost_regions"):
         for index, region in enumerate(semantic_payload.get(collection_name, []), start=1):
             zone_name = str(region.get("id") or f"{collection_name}_{index}")
             zone_names.append(zone_name)
-            zones[zone_name] = _build_semantic_zone(region)
+            zones[zone_name] = _build_semantic_zone(
+                region,
+                spawn_x,
+                spawn_y,
+                spawn_yaw,
+            )
 
     layer["zone_names"] = zone_names
     layer["zones"] = zones
@@ -121,11 +205,13 @@ def _write_semantic_overlay(case_id: str, semantic_path: pathlib.Path, output_di
     return overlay_path
 
 
-def write_companion_files(case_id: str, output_dir: pathlib.Path) -> None:
+def write_companion_files(case: Dict[str, Any], output_dir: pathlib.Path) -> None:
+    case_id = case["case_id"]
+    scenario_path = output_dir / f"{case_id}_scenario.yaml"
     waypoints_path = output_dir / f"{case_id}_waypoints.yaml"
     semantic_path = output_dir / f"{case_id}_semantic_regions.yaml"
-    _write_mission_file(case_id, waypoints_path, output_dir)
-    _write_semantic_overlay(case_id, semantic_path, output_dir)
+    _write_mission_file(case_id, scenario_path, waypoints_path, output_dir, case)
+    _write_semantic_overlay(case_id, scenario_path, semantic_path, output_dir)
 
 # 读 profile -> 展开 case 矩阵 -> subprocess 生成
 def main() -> int:
@@ -150,7 +236,7 @@ def main() -> int:
         print("Generating", case["case_id"])
         result = subprocess.run(build_ros_args(case, output_dir), check=False)
         if result.returncode == 0:
-            write_companion_files(case["case_id"], output_dir)
+            write_companion_files(case, output_dir)
         rows.append({
             "case_id": case["case_id"],
             "scenario_type": case.get("scenario_type", "corridor"),

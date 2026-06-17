@@ -17,12 +17,16 @@
 # TODO[徐梓鸣]： 参数调优与场景配置
 mission_action_server:
   ros__parameters:
-    nav2_ready_timeout_sec: 60.0
-    goal_timeout_sec: 180.0
+    nav2_ready_timeout_sec: 420.0
+    goal_timeout_sec: 300.0
     feedback_poll_period_sec: 0.2
     mission_state_publish_period_sec: 0.5
     default_max_retry_per_waypoint: 1
     default_allow_skip_waypoint: false
     safety_clear_hold_sec: 1.0
+    safety_backup_enabled: true
+    safety_backup_speed: 0.08
+    safety_backup_duration_sec: 1.8
+    safety_backup_clear_costmaps: true
     log_feedback_every_n_ticks: 5
     nav2_localizer: smoother_server

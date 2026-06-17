@@ -61,6 +61,11 @@ def _build_actions(context):
                 "params_file": nav2_params_file,
                 "run_headless": LaunchConfiguration("run_headless"),
                 "world_file": LaunchConfiguration("world_file"),
+                "spawn_x": LaunchConfiguration("spawn_x"),
+                "spawn_y": LaunchConfiguration("spawn_y"),
+                "spawn_z": LaunchConfiguration("spawn_z"),
+                "spawn_yaw": LaunchConfiguration("spawn_yaw"),
+                "nav2_startup_delay_sec": LaunchConfiguration("nav2_startup_delay_sec"),
             }.items(),
         )
     ]
@@ -69,7 +74,7 @@ def _build_actions(context):
             condition=IfCondition(LaunchConfiguration("enable_safety")),
             name="safety_monitor",
             cmd=[
-                "python3",
+                "/usr/bin/python3.10",
                 "-m",
                 "sam_bot_safety_monitor.safety_monitor",
                 "--ros-args",
@@ -80,12 +85,18 @@ def _build_actions(context):
         )
     )
     if start_mission_manager:
+        mission_params = str(
+            Path(get_package_share_directory("nav2_mission_manager"))
+            / "config"
+            / "mission_manager.yaml"
+        )
         actions.append(
             Node(
                 package="nav2_mission_manager",
                 executable="mission_manager_node",
                 name="mission_action_server",
                 output="screen",
+                parameters=[mission_params, {"use_sim_time": True}],
             )
         )
 
@@ -99,12 +110,21 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("run_headless", default_value="False"),
             DeclareLaunchArgument("world_file", default_value="empty.sdf"),
+            DeclareLaunchArgument("spawn_x", default_value="-2.0"),
+            DeclareLaunchArgument("spawn_y", default_value="0.0"),
+            DeclareLaunchArgument("spawn_z", default_value="1.0"),
+            DeclareLaunchArgument("spawn_yaw", default_value="0.0"),
             DeclareLaunchArgument("nav2_params_file", default_value=""),
             DeclareLaunchArgument("mission_file", default_value=""),
             DeclareLaunchArgument("enable_semantic", default_value="False"),
             DeclareLaunchArgument("enable_safety", default_value="False"),
             DeclareLaunchArgument("safety_params_file", default_value=""),
             DeclareLaunchArgument("start_mission_manager", default_value="False"),
+            DeclareLaunchArgument(
+                "nav2_startup_delay_sec",
+                default_value="25.0",
+                description="Delay after SLAM starts before launching Nav2.",
+            ),
             OpaqueFunction(function=_build_actions),
         ]
     )

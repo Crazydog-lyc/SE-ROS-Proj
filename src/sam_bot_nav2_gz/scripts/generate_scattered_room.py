@@ -23,6 +23,12 @@ SPAWN_CLEAR_RADIUS = 0.85
 PILLAR_CENTER = (0.0, 0.0)
 PILLAR_RADIUS = 0.40
 PILLAR_CLEAR_GAP = 0.25
+DEMO_ROUTE_CLEAR_ZONES = [
+    # Keep the two-waypoint demo route open from the known spawn toward
+    # the far lower lane of demo_pillar_room.
+    (-2.0, -0.85, 0.95, 1.75),
+    (0.25, -1.65, 5.15, 0.85),
+]
 
 
 def _boxes_overlap(
@@ -47,6 +53,13 @@ def _in_pillar_clearance(x: float, y: float, w: float, h: float) -> bool:
     px, py = PILLAR_CENTER
     half_diag = math.hypot(w, h) / 2.0
     return math.hypot(x - px, y - py) < PILLAR_RADIUS + half_diag + PILLAR_CLEAR_GAP
+
+
+def _in_route_clearance(x: float, y: float, w: float, h: float) -> bool:
+    return any(
+        _boxes_overlap(x, y, w, h, cx, cy, cw, ch, gap=0.05)
+        for cx, cy, cw, ch in DEMO_ROUTE_CLEAR_ZONES
+    )
 
 
 # TODO[陆华均][FR-A] FR-A-06 程序化生成 pillar room 散布障碍物
@@ -83,6 +96,8 @@ def generate_boxes(seed: int, count: int) -> list[dict]:
         if _in_spawn_clearance(x, y, footprint_w, footprint_h):
             continue
         if _in_pillar_clearance(x, y, footprint_w, footprint_h):
+            continue
+        if _in_route_clearance(x, y, footprint_w, footprint_h):
             continue
 
         overlaps = False
@@ -154,8 +169,6 @@ def build_world_sdf(seed: int, box_count: int) -> str:
 
     return textwrap.dedent(
         f"""\
-        <?xml version="1.0" ?>
-
         <sdf version="1.8">
           <world name="demo_pillar_room">
             <gui>
@@ -327,7 +340,7 @@ def build_world_sdf(seed: int, box_count: int) -> str:
           </world>
         </sdf>
         """
-    )
+    ).lstrip()
 
 
 def main() -> int:
