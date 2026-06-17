@@ -1,5 +1,19 @@
+# ========================================================================
+# 文件: src/nav2_mission_manager/nav2_mission_manager/mission_action_server.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# MissionActionServerNode：ActionServer 执行循环里 poll safety state、goal timeout、调用
+# state_machine.handle_event，TransitionCommand 分支调 navigator。请生成
+# _process_event、_execute_callback、_publish_state 框架，业务分支我后面填。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
+# 【实现说明】显式状态机 + Action Server 驱动 Nav2 waypoint 序列，订阅 /safety/state。
+import threading
 import time
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 from course_interfaces.action import RunMission
 from course_interfaces.msg import MissionState, SafetyState
@@ -17,11 +31,17 @@ from .state_machine import MissionStateMachine
 from .states import MissionState as MissionStateEnum
 
 
+
+# TODO[徐梓鸣]：FR-B-02 实现 /mission/run Action Server，驱动 waypoint 序列并响应安全状态
 class MissionActionServerNode(Node):
+    #         # Reentrant 回调组：execute 循环里能收 safety 订阅
     def __init__(self, navigator_factory: Optional[Callable[[], BasicNavigatorAdapter]] = None):
+        # TODO[徐梓鸣]：FR-B-06 周期性发布 /mission/state 供 RViz/脚本监控
         super().__init__("mission_action_server")
         self._callback_group = ReentrantCallbackGroup()
         self._navigator_factory = navigator_factory or self._default_navigator_factory
+        self._goal_lock = threading.Lock()
+        self._safety_lock = threading.Lock()
         self._active_goal = False
         self._latest_safety_msg: Optional[SafetyState] = None
         self._latest_safe_since: Optional[float] = None
@@ -55,18 +75,24 @@ class MissionActionServerNode(Node):
         )
 
     def destroy_node(self) -> bool:
+        # TODO[徐梓鸣]：FR-B-05 WAITING_FOR_RESULT 中订阅 /safety/state，STOP_NOW 触发 SAFETY_STOP
         self._action_server.destroy()
         return super().destroy_node()
 
     def _default_navigator_factory(self) -> BasicNavigatorAdapter:
+        # TODO[徐梓鸣]：FR-B-05 PAUSED_FOR_SAFETY 中等待 safety_clear_hold_sec 后重新派发 waypoint
         localizer = self.get_parameter("nav2_localizer").get_parameter_value().string_value
         return BasicNavigatorAdapter(localizer=localizer)
 
+    #         # 同时只跑一个 mission
     def _goal_callback(self, goal_request: RunMission.Goal) -> GoalResponse:
+        # TODO[徐梓鸣]：FR-B-04 goal 超时与 Nav2 结果映射到状态机事件
         del goal_request
-        if self._active_goal:
-            self.get_logger().warn("[MISSION][GOAL][M001] Rejecting new goal because one is already active.")
-            return GoalResponse.REJECT
+        with self._goal_lock:
+            if self._active_goal:
+                self.get_logger().warn("[MISSION][GOAL][M001] Rejecting new goal because one is already active.")
+                return GoalResponse.REJECT
+            self._active_goal = True
         return GoalResponse.ACCEPT
 
     def _cancel_callback(self, goal_handle) -> CancelResponse:
@@ -74,14 +100,29 @@ class MissionActionServerNode(Node):
         return CancelResponse.ACCEPT
 
     def _on_safety_state(self, msg: SafetyState) -> None:
-        self._latest_safety_msg = msg
-        if msg.level == SafetyState.SAFE:
-            if self._latest_safe_since is None:
-                self._latest_safe_since = time.monotonic()
-        else:
-            self._latest_safe_since = None
+        with self._safety_lock:
+            self._latest_safety_msg = msg
+            # 记录 SAFE 持续了多久，避免安全层抖动导致 mission 立刻重发 goal
+            if msg.level == SafetyState.SAFE:
+                if self._latest_safe_since is None:
+                    self._latest_safe_since = time.monotonic()
+            else:
+                self._latest_safe_since = None
+
+    def _get_safety_snapshot(self) -> Tuple[Optional[SafetyState], Optional[float]]:
+        with self._safety_lock:
+            return self._latest_safety_msg, self._latest_safe_since
+
+    def _is_safety_clear_held(self, hold_sec: float) -> bool:
+        with self._safety_lock:
+            msg = self._latest_safety_msg
+            safe_since = self._latest_safe_since
+        if msg is None or msg.level != SafetyState.SAFE or safe_since is None:
+            return False
+        return time.monotonic() - safe_since >= hold_sec
 
     def _publish_state(self, context: MissionExecutionContext) -> None:
+        # 给 RViz 面板和 auto_run_mission 脚本看进度
         msg = MissionState()
         msg.stamp = self.get_clock().now().to_msg()
         msg.mission_id = context.mission_id
@@ -99,6 +140,7 @@ class MissionActionServerNode(Node):
         navigator: BasicNavigatorAdapter,
         event: Event,
     ) -> None:
+        # 状态机可能一次事件触发多个 TransitionCommand，用 while 链式处理
         next_event = event
         while next_event is not None:
             transition = machine.handle_event(context, next_event)
@@ -132,6 +174,7 @@ class MissionActionServerNode(Node):
 
             if transition.command == TransitionCommand.CANCEL_GOAL:
                 navigator.cancel_task()
+                # 最多等 5s，确认 Nav2 真的 cancel 完再进 PAUSED
                 deadline = time.monotonic() + 5.0
                 poll_period = float(self.get_parameter("feedback_poll_period_sec").value)
                 while time.monotonic() < deadline and navigator.task_active and not navigator.is_task_complete():
@@ -144,8 +187,8 @@ class MissionActionServerNode(Node):
 
             next_event = None
 
+    #         # Action 主线程：load mission + 轮询 Nav2
     def _execute_callback(self, goal_handle) -> RunMission.Result:
-        self._active_goal = True
         try:
             navigator = self._navigator_factory()
             machine = MissionStateMachine()
@@ -185,6 +228,7 @@ class MissionActionServerNode(Node):
             log_feedback_every = int(self.get_parameter("log_feedback_every_n_ticks").value)
             start_time = time.monotonic()
 
+            # 主循环：轮询 goal 结果 + 安全态，直到进入终态
             while rclpy.ok() and context.state not in MissionStateMachine.TERMINAL_STATES:
                 if goal_handle.is_cancel_requested:
                     self._process_event(
@@ -197,7 +241,8 @@ class MissionActionServerNode(Node):
                     break
 
                 if context.state == MissionStateEnum.WAITING_FOR_RESULT:
-                    safety_msg = self._latest_safety_msg
+                    safety_msg, _ = self._get_safety_snapshot()
+                    # STOP_NOW 来自苏易的 safety_monitor
                     if safety_msg is not None and safety_msg.level == SafetyState.STOP_NOW:
                         self._process_event(
                             machine,
@@ -246,15 +291,15 @@ class MissionActionServerNode(Node):
                         )
 
                 elif context.state == MissionStateEnum.PAUSED_FOR_SAFETY:
-                    if self._latest_safety_msg and self._latest_safety_msg.level == SafetyState.SAFE:
-                        if self._latest_safe_since is not None and time.monotonic() - self._latest_safe_since >= safety_hold_sec:
-                            self._process_event(
-                                machine,
-                                context,
-                                navigator,
-                                Event(EventType.SAFETY_CLEAR, "Safety clear hold time satisfied."),
-                            )
-                            continue
+                    # 要求 SAFE 持续 safety_clear_hold_sec，防止抖动
+                    if self._is_safety_clear_held(safety_hold_sec):
+                        self._process_event(
+                            machine,
+                            context,
+                            navigator,
+                            Event(EventType.SAFETY_CLEAR, "Safety clear hold time satisfied."),
+                        )
+                        continue
 
                 now = time.monotonic()
                 if now - last_state_publish >= state_publish_period:
@@ -273,8 +318,10 @@ class MissionActionServerNode(Node):
 
             return self._build_result(context, success=context.state == MissionStateEnum.MISSION_SUCCEEDED)
         finally:
-            self._active_goal = False
+            with self._goal_lock:
+                self._active_goal = False
 
+        # Action feedback 带进度百分比
     def _publish_action_feedback(
         self,
         goal_handle,
@@ -292,6 +339,8 @@ class MissionActionServerNode(Node):
         feedback.elapsed_sec = float(time.monotonic() - start_time)
         goal_handle.publish_feedback(feedback)
 
+    #         # 把 context 填进 RunMission.Result
+        # 终态时组装 RunMission.Result
     def _build_result(self, context: MissionExecutionContext, success: bool) -> RunMission.Result:
         result = RunMission.Result()
         result.success = bool(success)
@@ -302,6 +351,8 @@ class MissionActionServerNode(Node):
         return result
 
 
+# 入口：初始化 navigator、发 goal、主循环 spin
+# mission_action_server 独立进程入口
 def main(args=None) -> None:
     rclpy.init(args=args)
     node = MissionActionServerNode()

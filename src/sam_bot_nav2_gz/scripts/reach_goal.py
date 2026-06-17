@@ -1,3 +1,14 @@
+# ========================================================================
+# 文件: src/sam_bot_nav2_gz/scripts/reach_goal.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 官方 nav2_simple_commander reach_goal Demo，我用来 mid-term smoke test Nav2 链路。保持
+# BasicNavigator goToPose 结构即可，这是基线参考不是自研模块。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #! /usr/bin/env python3
 # Copyright 2021 Samsung Research America
 #
@@ -21,6 +32,7 @@ from rclpy.duration import Duration
 """
 Basic navigation demo to go to pose.
 """
+
 
 
 def main():

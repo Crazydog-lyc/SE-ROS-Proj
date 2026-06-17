@@ -1,3 +1,13 @@
+# ========================================================================
+# 文件: src/sam_bot_safety_monitor/test/test_safety_sensor_timeout.launch.py
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 请为这个模块生成 gtest/launch_test 骨架：一个 smoke 用例断言核心函数不抛异常，具体断言我后面补。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 import time
 import unittest
 
@@ -16,6 +26,8 @@ from course_interfaces.srv import GetSafetyState
 
 @pytest.mark.launch_test
 @launch_testing.markers.keep_alive
+
+# 单测：def generate_description
 def generate_test_description():
     safety_monitor = Node(
         package="sam_bot_safety_monitor",
@@ -61,6 +73,7 @@ class TestSafetySensorTimeout(unittest.TestCase):
         self.assertIsNotNone(future.result())
         return future.result().state
 
+    # 单测：def sensor_timeout_enters_paused
     def test_sensor_timeout_enters_paused(self):
         deadline = time.time() + 5.0
         state = self._get_state()

@@ -1,9 +1,22 @@
+# ========================================================================
+# 文件: src/semantic_costmap_plugins/scripts/set_task_mode.py
+# 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 基于 Nav2 Humble costmap_2d::Layer，帮我新建 semantic_costmap_plugins 包骨架：SemanticZoneLayer /
+# PreferredLaneLayer / DynamicCongestionLayer 三个插件类，继承 CostmapLayer，先实现
+# onInitialize、updateBounds、updateCosts 空壳和 pluginlib 导出，附带 geometry_utils、cost_functions
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #!/usr/bin/env python3
 import argparse
 
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+
 
 
 class TaskModePublisher(Node):
@@ -26,6 +39,7 @@ class TaskModePublisher(Node):
             rclpy.shutdown()
 
 
+# 发布 /semantic_task_mode 切换 costmap 模式
 def main() -> None:
     parser = argparse.ArgumentParser(description="Publish a semantic task mode string.")
     parser.add_argument("mode", help="Task mode to publish, for example: all, patrol, delivery, charge")

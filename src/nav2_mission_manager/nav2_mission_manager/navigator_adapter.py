@@ -1,8 +1,23 @@
+# ========================================================================
+# 文件: src/nav2_mission_manager/nav2_mission_manager/navigator_adapter.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 基于 nav2_simple_commander.BasicNavigator 写一个 BasicNavigatorAdapter
+# 薄封装：wait_until_ready(timeout)、send_goal(WaypointSpec)、is_task_complete、cancel_task、get_feedback/get_result；
+# wait_until_ready 在 execute 同线程轮询 lifecycle get_state（mock 仍用带超时的 legacy 线程）。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 import math
 import threading
+import time
 from typing import Any, Optional
 
+import rclpy
 from geometry_msgs.msg import PoseStamped
+from lifecycle_msgs.srv import GetState
 
 from .models import MissionFeedbackSnapshot, NavTaskResult, WaypointSpec
 
@@ -17,8 +32,9 @@ def _duration_to_seconds(duration_msg: Any) -> Optional[float]:
     return float(sec) + float(nanosec) / 1_000_000_000.0
 
 
+
 class BasicNavigatorAdapter:
-    """Thin wrapper around nav2_simple_commander.BasicNavigator."""
+    """封装 BasicNavigator，把 WaypointSpec 转成 goToPose 调用。"""
 
     def __init__(
         self,
@@ -37,6 +53,7 @@ class BasicNavigatorAdapter:
             self._navigator = navigator_cls()
         self._localizer = localizer
         self._task_active = False
+        self._lock = threading.Lock()
         if task_result_constants is not None:
             self._task_result_constants = task_result_constants
         else:
@@ -49,15 +66,37 @@ class BasicNavigatorAdapter:
 
     @property
     def task_active(self) -> bool:
-        return self._task_active
+        with self._lock:
+            return self._task_active
 
-    def wait_until_ready(self, timeout_sec: float) -> bool:
+    def _wait_lifecycle_node_active(self, node_name: str, deadline: float) -> bool:
+        nav = self._navigator
+        node_service = f"{node_name}/get_state"
+        state_client = nav.create_client(GetState, node_service)
+        req = GetState.Request()
+
+        while time.monotonic() < deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            if not state_client.wait_for_service(timeout_sec=min(1.0, remaining)):
+                continue
+            future = state_client.call_async(req)
+            rclpy.spin_until_future_complete(nav, future, timeout_sec=min(1.0, remaining))
+            if future.result() is not None and future.result().current_state.label == "active":
+                return True
+            time.sleep(min(0.2, remaining))
+        return False
+
+    def _wait_until_ready_mock(self, timeout_sec: float) -> bool:
+        """仅用于无 create_client 的 mock navigator；带超时但不跨线程调 rclpy。"""
+        nav = self._navigator
         done = threading.Event()
         error: list[BaseException] = []
 
         def worker() -> None:
             try:
-                self._navigator.waitUntilNav2Active(localizer=self._localizer)
+                nav.waitUntilNav2Active(localizer=self._localizer)
             except BaseException as exc:  # pragma: no cover - defensive
                 error.append(exc)
             finally:
@@ -70,7 +109,31 @@ class BasicNavigatorAdapter:
             raise error[0]
         return finished
 
+    def wait_until_ready(self, timeout_sec: float) -> bool:
+        nav = self._navigator
+        deadline = time.monotonic() + timeout_sec
+
+        if hasattr(nav, "create_client"):
+            if not self._wait_lifecycle_node_active(self._localizer, deadline):
+                return False
+            if self._localizer == "amcl" and hasattr(nav, "initial_pose_received"):
+                while time.monotonic() < deadline:
+                    if nav.initial_pose_received:
+                        break
+                    if hasattr(nav, "_setInitialPose"):
+                        nav._setInitialPose()
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        return False
+                    rclpy.spin_once(nav, timeout_sec=min(1.0, remaining))
+                else:
+                    return False
+            return self._wait_lifecycle_node_active("bt_navigator", deadline)
+
+        return self._wait_until_ready_mock(timeout_sec)
+
     def send_goal(self, waypoint: WaypointSpec, frame_id: str = "map") -> bool:
+        # yaw 转四元数，和 mission JSON 里的弧度制一致
         pose = PoseStamped()
         pose.header.frame_id = frame_id
         pose.header.stamp = self._navigator.get_clock().now().to_msg()
@@ -83,21 +146,27 @@ class BasicNavigatorAdapter:
         try:
             self._navigator.goToPose(pose)
         except Exception:
-            self._task_active = False
+            with self._lock:
+                self._task_active = False
             return False
-        self._task_active = True
+        with self._lock:
+            self._task_active = True
         return True
 
     def is_task_complete(self) -> bool:
-        if not self._task_active:
-            return True
+        with self._lock:
+            if not self._task_active:
+                return True
         complete = bool(self._navigator.isTaskComplete())
         if complete:
-            self._task_active = False
+            with self._lock:
+                self._task_active = False
         return complete
 
     def get_feedback(self) -> Optional[MissionFeedbackSnapshot]:
-        if not self._task_active:
+        with self._lock:
+            active = self._task_active
+        if not active:
             return None
         feedback = self._navigator.getFeedback()
         if feedback is None:
@@ -115,7 +184,9 @@ class BasicNavigatorAdapter:
         )
 
     def cancel_task(self) -> None:
-        if self._task_active:
+        with self._lock:
+            active = self._task_active
+        if active:
             self._navigator.cancelTask()
 
     def get_result(self) -> NavTaskResult:

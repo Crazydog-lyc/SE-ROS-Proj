@@ -1,3 +1,13 @@
+// ========================================================================
+// 文件: src/nav2_scenario_runner/src/plugins/congestion_generator.cpp
+// 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+// ========================================================================
+//
+// 【AI-PROMPT】
+// CongestionGenerator：生成带临时高代价区的 semantic_overlay.yaml，waypoint 穿过拥堵区。请生成插件骨架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// ========================================================================
 #include "nav2_scenario_runner/plugins/congestion_generator.hpp"
 
 #include "pluginlib/class_list_macros.hpp"
@@ -10,8 +20,11 @@ std::string CongestionGenerator::name() const
   return "congestion";
 }
 
+
+  // 读取 generator 插件参数
 void CongestionGenerator::configure(const rclcpp::Node::SharedPtr & node)
 {
+  // 动态拥堵事件的默认触发时刻和强度
   node->declare_parameter("default_trigger_time", default_trigger_time_);
   node->declare_parameter("default_duration", default_duration_);
   node->declare_parameter("default_strength", default_strength_);
@@ -20,6 +33,7 @@ void CongestionGenerator::configure(const rclcpp::Node::SharedPtr & node)
   node->get_parameter("default_strength", default_strength_);
 }
 
+  // 根据 request 生成 walls/waypoints/semantic 区域
 ScenarioSpec CongestionGenerator::generate(const ScenarioRequest & request)
 {
   ScenarioSpec spec;
@@ -37,6 +51,7 @@ ScenarioSpec CongestionGenerator::generate(const ScenarioRequest & request)
   spec.waypoints = {{-2.8, 0.0, 0.0}, {2.8, 0.0, 0.0}};
 
   if (request.enable_congestion) {
+    // LINK[李熠城]：events 会进 overlay，runtime 由 publish_sample_congestion 模拟
     DynamicEvent event;
     event.type = "congestion";
     event.trigger_time = default_trigger_time_;

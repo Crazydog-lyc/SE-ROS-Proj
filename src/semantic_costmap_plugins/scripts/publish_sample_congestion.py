@@ -1,3 +1,15 @@
+# ========================================================================
+# 文件: src/semantic_costmap_plugins/scripts/publish_sample_congestion.py
+# 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 基于 Nav2 Humble costmap_2d::Layer，帮我新建 semantic_costmap_plugins 包骨架：SemanticZoneLayer /
+# PreferredLaneLayer / DynamicCongestionLayer 三个插件类，继承 CostmapLayer，先实现
+# onInitialize、updateBounds、updateCosts 空壳和 pluginlib 导出，附带 geometry_utils、cost_functions
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #!/usr/bin/env python3
 import argparse
 import math
@@ -6,6 +18,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
+
 
 
 class CongestionPublisher(Node):
@@ -46,6 +59,7 @@ class CongestionPublisher(Node):
             rclpy.shutdown()
 
 
+# 演示用：往 congestion topic 打几帧事件
 def main() -> None:
     parser = argparse.ArgumentParser(description="Publish example dynamic congestion events.")
     parser.add_argument("--topic", default="/semantic_congestion_events")

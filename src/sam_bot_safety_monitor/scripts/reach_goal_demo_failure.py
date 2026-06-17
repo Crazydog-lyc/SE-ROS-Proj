@@ -1,4 +1,21 @@
+# ========================================================================
+# 文件: src/sam_bot_safety_monitor/scripts/reach_goal_demo_failure.py
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# Demo 脚本：启动 safety_aware 导航到单点，配合 safety_monitor 展示 pause/estop/recovery。请基于
+# reach_goal.py 改写成带 SafetyState 监听的框架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #! /usr/bin/env python3
+
+# ---------------------------------------------------------------------------
+# 【场景】单点 reach_goal 演示
+# 【演示脚本说明】Gazebo 联调用；print 便于录屏。需先起 safety_monitor + Nav2。
+# ---------------------------------------------------------------------------
+
 
 import math
 
@@ -24,6 +41,8 @@ def _create_goal_pose(navigator: SafetyAwareNavigator, x: float, y: float, yaw: 
     pose.pose.orientation.z = math.sin(yaw / 2.0)
     pose.pose.orientation.w = math.cos(yaw / 2.0)
     return pose
+
+# 故意发到 unreachable 点，看 Nav2 失败反馈
 def main():
     rclpy.init()
     navigator = SafetyAwareNavigator(node_name="reach_goal_demo_failure_navigator")
@@ -76,6 +95,7 @@ def main():
         flush=True,
     )
 
+    # 目标点在墙里或地图外
     if not navigator.goToPose(goal_pose):
         print("[DEMO B] goal request was rejected immediately", flush=True)
         raise SystemExit(1)
@@ -85,6 +105,7 @@ def main():
     feedback_counter = 0
     demo_pause_completed = False
 
+    # 等 FAILED 结果
     while rclpy.ok():
         task_complete = navigator.isTaskComplete()
         safety_state = navigator.get_safety_state_label()
@@ -143,3 +164,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ---------------------------------------------------------------------------
+# 【联调检查清单】
+# 录屏时建议同时开 rqt 看 /safety/state 与 /mission/state
+# 堵塞 demo 记得开 enable_blockage_monitor
+# 1. safety_monitor 已 active 且 /scan /odom 有数据
+# 2. Nav2 lifecycle 到 active，localizer 与 launch 一致
+# 3. RViz 里能看到 robot 与 costmap
+# 4. 故意触发 pause 时 mission_manager 应进入 PAUSED_FOR_SAFETY
+# ---------------------------------------------------------------------------

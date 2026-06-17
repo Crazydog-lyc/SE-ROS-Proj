@@ -1,3 +1,15 @@
+# ========================================================================
+# 文件: src/nav2_mission_manager/nav2_mission_manager/models.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 我在 ROS2 Humble 上做 Nav2 课程项目，需要新建 nav2_mission_manager 包。请帮我搭 Python Action Server
+# 骨架：/mission/run 用 course_interfaces/RunMission，ReentrantCallbackGroup +
+# MultiThreadedExecutor，发布 /mission/state，订阅 /safety/state；先把
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -5,7 +17,9 @@ from typing import Optional
 from .states import MissionState
 
 
+
 class NavTaskResult(str, Enum):
+    # 和 nav2_simple_commander TaskResult 对齐，方便 adapter 映射
     SUCCEEDED = "SUCCEEDED"
     CANCELED = "CANCELED"
     FAILED = "FAILED"
@@ -13,6 +27,7 @@ class NavTaskResult(str, Enum):
 
 
 class TransitionCommand(str, Enum):
+    # 状态机 handler 返回后，Action Server 据此调 navigator
     NONE = "NONE"
     WAIT_FOR_NAV2 = "WAIT_FOR_NAV2"
     SEND_GOAL = "SEND_GOAL"
@@ -46,6 +61,7 @@ class MissionFeedbackSnapshot:
 
 @dataclass
 class MissionExecutionContext:
+    # 一次 /mission/run goal 的全局上下文，状态机只改这个对象
     mission_spec: Optional[MissionSpec] = None
     state: MissionState = MissionState.IDLE
     max_retry_per_waypoint: int = 1
@@ -76,6 +92,7 @@ class MissionExecutionContext:
 
     @property
     def progress_percent(self) -> float:
+        # 按已完成 waypoint 数算百分比，给 /mission/state 用
         if self.total_waypoints == 0:
             return 0.0
         return (self.completed_count / self.total_waypoints) * 100.0

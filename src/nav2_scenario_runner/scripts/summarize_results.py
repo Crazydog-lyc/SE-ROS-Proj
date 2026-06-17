@@ -1,10 +1,24 @@
+# ========================================================================
+# 文件: src/nav2_scenario_runner/scripts/summarize_results.py
+# 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+# ========================================================================
+#
+# 【AI-PROMPT】
+# summarize_results.py：读 results-dir 下 JSON/CSV，算 success rate、平均 elapsed，打印表格并可选写
+# summary.csv。请生成 argparse 和汇总框架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #!/usr/bin/env python3
+# 【批跑说明】输出目录结构：cases/<case_id>/{world,mission,metrics}
 import argparse
 import json
 import pathlib
 from statistics import mean
 
+
 def main() -> int:
+    # TODO[陆华均]：FR-A-05 汇总 success rate、elapsed time 输出 CSV/JSON
     parser = argparse.ArgumentParser()
     parser.add_argument("--results-dir", required=True)
     args = parser.parse_args()

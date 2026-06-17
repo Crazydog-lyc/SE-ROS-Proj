@@ -1,3 +1,15 @@
+# ========================================================================
+# 文件: src/course_interfaces/action/RunMission.action
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 我们在 course_interfaces 里定义 RunMission.action：Goal 含
+# mission_file、max_retry_per_waypoint、allow_skip_waypoint；Feedback 带当前 waypoint 和
+# elapsed_sec；Result 带 success 和 completed_waypoints。请按 ROS2 action 格式生成字段骨架，注释写清楚各字段含义即可。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 # Goal
 string mission_file
 uint32 max_retry_per_waypoint

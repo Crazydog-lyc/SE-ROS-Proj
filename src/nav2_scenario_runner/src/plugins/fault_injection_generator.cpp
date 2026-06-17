@@ -1,3 +1,14 @@
+// ========================================================================
+// 文件: src/nav2_scenario_runner/src/plugins/fault_injection_generator.cpp
+// 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+// ========================================================================
+//
+// 【AI-PROMPT】
+// FaultInjectionGenerator：在 case manifest 里写入 sensor_timeout/tf_fault 等故障注入参数，供
+// safety_monitor Demo 用。请生成插件骨架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// ========================================================================
 #include "nav2_scenario_runner/plugins/fault_injection_generator.hpp"
 
 #include "pluginlib/class_list_macros.hpp"
@@ -10,7 +21,10 @@ std::string FaultInjectionGenerator::name() const
   return "fault_injection";
 }
 
+
+  // 读取 generator 插件参数
 void FaultInjectionGenerator::configure(const rclcpp::Node::SharedPtr & node)
+// TODO[陆华均]：FR-A-01 【FR-05】FaultInjectionGenerator：传感器/TF 故障注入参数
 {
   node->declare_parameter("fault_trigger_time", fault_trigger_time_);
   node->declare_parameter("fault_duration", fault_duration_);
@@ -18,6 +32,7 @@ void FaultInjectionGenerator::configure(const rclcpp::Node::SharedPtr & node)
   node->get_parameter("fault_duration", fault_duration_);
 }
 
+// 带 sensor fault 标记的 case
 ScenarioSpec FaultInjectionGenerator::generate(const ScenarioRequest & request)
 {
   ScenarioSpec spec;

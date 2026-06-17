@@ -1,4 +1,16 @@
+# ========================================================================
+# 文件: src/nav2_scenario_runner/scripts/run_batch.py
+# 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+# ========================================================================
+#
+# 【AI-PROMPT】
+# run_batch.py：遍历 cases-dir 下子目录，对每个 case launch run_single_case.launch.py，带
+# --timeout-sec，写 results JSON。请生成批量调度框架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #!/usr/bin/env python3
+# 【批跑说明】输出目录结构：cases/<case_id>/{world,mission,metrics}
 import argparse
 import csv
 import json
@@ -7,7 +19,9 @@ import subprocess
 import time
 from typing import Any, Dict, List
 
+
 def run_case(case_file: pathlib.Path, results_dir: pathlib.Path, launch_package: str, launch_file: str,
+# TODO[陆华均]：FR-A-04 批量 launch 单 case，timeout 控制与结果落盘
              timeout_sec: int, extra_launch_args: List[str]) -> Dict[str, Any]:
     case_id = case_file.stem.replace("_scenario", "")
     start = time.time()
@@ -41,6 +55,7 @@ def run_case(case_file: pathlib.Path, results_dir: pathlib.Path, launch_package:
         json.dump(result, f, indent=2)
     return result
 
+# 批量 launch scenario + 跑 mission + 收 metrics
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cases-dir", required=True)

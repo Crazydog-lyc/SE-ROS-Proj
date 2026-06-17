@@ -1,3 +1,13 @@
+# ========================================================================
+# 文件: src/sam_bot_safety_monitor/test/test_safety_services.launch.py
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 请为这个模块生成 gtest/launch_test 骨架：一个 smoke 用例断言核心函数不抛异常，具体断言我后面补。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 import unittest
 
 import launch_testing.actions
@@ -19,6 +29,8 @@ from course_interfaces.srv import (
 
 @pytest.mark.launch_test
 @launch_testing.markers.keep_alive
+
+# 单测：def generate_description
 def generate_test_description():
     safety_monitor = Node(
         package="sam_bot_safety_monitor",
@@ -64,6 +76,7 @@ class TestSafetyServices(unittest.TestCase):
         self.assertIsNotNone(future.result())
         return future.result()
 
+    # 单测：def initial_state_is_normal
     def test_initial_state_is_normal(self):
         response = self._call_service(
             GetSafetyState,
@@ -73,6 +86,7 @@ class TestSafetyServices(unittest.TestCase):
         self.assertEqual(response.state.level, SafetyState.SAFE)
         self.assertEqual(response.state.state_label, "NORMAL")
 
+    # 单测：def manual_pause_and_estop
     def test_manual_pause_and_estop(self):
         pause_request = TriggerPause.Request()
         pause_request.reason = "test pause"

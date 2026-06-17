@@ -1,3 +1,14 @@
+// ========================================================================
+// 文件: src/semantic_costmap_plugins/src/preferred_lane_layer.cpp
+// 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+// ========================================================================
+//
+// 【AI-PROMPT】
+// PreferredLaneLayer：在车道多边形内降低代价引导路径，参数 lane_polygons + lane_cost。请生成 CostmapLayer 插件骨架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// 【模块说明】语义 costmap 插件实现，参数见 config/nav2_params_semantic.yaml
+// ========================================================================
 #include "semantic_costmap_plugins/preferred_lane_layer.hpp"
 
 #include <algorithm>
@@ -16,13 +27,16 @@
 namespace semantic_costmap_plugins
 {
 
+
 PreferredLaneLayer::PreferredLaneLayer()
 : active_mode_("all")
 {
 }
 
+// 插件初始化：读参数、订阅 topic
 void PreferredLaneLayer::onInitialize()
 {
+  // 偏好车道：多边形内降低代价，引导 planner 走主通道
   auto node = node_.lock();
   if (!node) {
     throw std::runtime_error("PreferredLaneLayer failed to lock lifecycle node");
@@ -38,6 +52,7 @@ void PreferredLaneLayer::onInitialize()
 
   loadLanesFromParameters();
 
+  // 任务模式切换时只激活对应 mode 的车道（和 semantic_zone 同一套 topic）
   if (!task_mode_topic_.empty()) {
     task_mode_sub_ = node->create_subscription<std_msgs::msg::String>(
       task_mode_topic_,
@@ -54,6 +69,7 @@ void PreferredLaneLayer::onInitialize()
     name_.c_str(), lanes_.size(), active_mode_.c_str());
 }
 
+// 从参数加载偏好车道折线
 void PreferredLaneLayer::loadLanesFromParameters()
 {
   auto node = node_.lock();
@@ -64,6 +80,7 @@ void PreferredLaneLayer::loadLanesFromParameters()
   std::lock_guard<std::mutex> lock(mutex_);
   lanes_.clear();
 
+  // lane_names 下列出要加载的车道，每个车道一段 polyline
   const auto lane_names = parameter_utils::getStringArray(node, name_ + ".lane_names", {});
   for (const auto & lane_name : lane_names) {
     const std::string prefix = name_ + ".lanes." + lane_name + ".";
@@ -80,6 +97,7 @@ void PreferredLaneLayer::loadLanesFromParameters()
     const auto xs = parameter_utils::getDoubleArray(node, prefix + "points_x", {});
     const auto ys = parameter_utils::getDoubleArray(node, prefix + "points_y", {});
     if (xs.size() != ys.size() || xs.size() < 2U) {
+      // 至少两个点才能成线，否则跳过
       RCLCPP_WARN(
         node->get_logger(),
         "[%s] lane '%s' ignored because polyline points are invalid",
@@ -96,6 +114,7 @@ void PreferredLaneLayer::loadLanesFromParameters()
   }
 }
 
+// shouldApplyOnCell 接口
 bool PreferredLaneLayer::shouldApplyOnCell(unsigned char master_cost, const PreferredLane & lane) const
 {
   if (!lane.apply_to_unknown && master_cost == nav2_costmap_2d::NO_INFORMATION) {
@@ -104,6 +123,7 @@ bool PreferredLaneLayer::shouldApplyOnCell(unsigned char master_cost, const Pref
   return true;
 }
 
+// updateBounds 接口
 void PreferredLaneLayer::updateBounds(
   double /*robot_x*/, double /*robot_y*/, double /*robot_yaw*/,
   double * min_x, double * min_y, double * max_x, double * max_y)
@@ -128,6 +148,7 @@ void PreferredLaneLayer::updateBounds(
   *max_y = std::max(*max_y, max_y_world);
 }
 
+// updateCosts 接口
 void PreferredLaneLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid,
   int min_i, int min_j, int max_i, int max_j)
@@ -136,6 +157,7 @@ void PreferredLaneLayer::updateCosts(
     return;
   }
 
+  // 拷贝一份车道列表，避免 updateCosts 和参数回调抢锁
   std::vector<PreferredLane> lanes_copy;
   std::string active_mode_copy;
   {
@@ -151,6 +173,7 @@ void PreferredLaneLayer::updateCosts(
   max_i = std::min(static_cast<int>(size_x), max_i);
   max_j = std::min(static_cast<int>(size_y), max_j);
 
+  // 双层循环遍历 costmap 更新窗口
   for (int j = min_j; j < max_j; ++j) {
     for (int i = min_i; i < max_i; ++i) {
       double wx = 0.0;
@@ -182,8 +205,7 @@ void PreferredLaneLayer::updateCosts(
           best_lane_penalty = penalty;
           first_match = false;
         } else {
-          // A cell is good if it is close to any preferred lane, so use the minimum
-          // penalty among all active lanes.
+          // 离任意一条偏好车道越近 penalty 越小，取 min
           best_lane_penalty = std::min(best_lane_penalty, penalty);
         }
       }
@@ -197,16 +219,19 @@ void PreferredLaneLayer::updateCosts(
   }
 }
 
+// footprint 变化时标记需要重算
 void PreferredLaneLayer::onFootprintChanged()
 {
   current_ = false;
 }
 
+// layer reset 回调
 void PreferredLaneLayer::reset()
 {
   current_ = true;
 }
 
+// 与 master costmap 尺寸对齐
 void PreferredLaneLayer::matchSize()
 {
   auto * master = layered_costmap_->getCostmap();
@@ -220,6 +245,7 @@ void PreferredLaneLayer::matchSize()
   }
 }
 
+// 与 semantic_zone 共用 task_mode topic
 void PreferredLaneLayer::onTaskModeMessage(const std_msgs::msg::String::SharedPtr msg)
 {
   {

@@ -1,3 +1,19 @@
+# ========================================================================
+# 文件: src/sam_bot_safety_monitor/sam_bot_safety_monitor/safety_navigation.py
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# SafetyAwareNavigator 继承 BasicNavigator，订阅 /safety/state，PAUSE/ESTOP 时
+# cancelTask，recovery_mode 支持 resume_remaining 等。请生成类框架和 _on_safety_state 回调骨架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ---------------------------------------------------------------------------
+# 【实现说明】
+# 包装 BasicNavigator：/safety/state 触发 cancelTask，RECOVERING 后按 recovery_mode
+# 重发 goal 或剩余 waypoints。demo 脚本可设 client_replay_after_normal 自行重放。
+# ---------------------------------------------------------------------------
+
 import copy
 import time
 from typing import List, Optional
@@ -20,8 +36,10 @@ STATE_CANCELED = "CANCELED"
 STATE_RECOVERING = "RECOVERING"
 
 
+
+# TODO[苏易]：FR-D-06~07 安全感知导航器与 recovery 模式
 class SafetyAwareNavigator(BasicNavigator):
-    """Thin project-side navigator wrapper that reacts to safety state."""
+    """在 BasicNavigator 外包一层，监听 /safety/state 做 cancel 和恢复。"""
 
     def __init__(
         self,
@@ -36,6 +54,7 @@ class SafetyAwareNavigator(BasicNavigator):
 
         self.declare_parameter("recovery_mode", recovery_mode)
         self._recovery_mode = str(self.get_parameter("recovery_mode").value)
+        # 三种恢复策略，期末 demo 主要用 resume_remaining
         if self._recovery_mode not in (
             "resume_remaining",
             "restart_full_mission",
@@ -77,6 +96,7 @@ class SafetyAwareNavigator(BasicNavigator):
             SafetyState, "/safety/state", self._on_safety_state, state_qos
         )
 
+    # 订阅 /safety/state，打标记给主循环处理
     def _on_safety_state(self, msg: SafetyState) -> None:
         state_changed = (
             self.safety_state_label != msg.state_label
@@ -90,6 +110,7 @@ class SafetyAwareNavigator(BasicNavigator):
         if state_changed:
             self.info(f"Safety state changed to {msg.state_label}: {msg.reason}")
 
+        # 先打标记，主循环里再真正 cancel，避免在回调里直接调 Nav2
         if msg.state_label in (STATE_PAUSED, STATE_EMERGENCY_STOP, STATE_CANCELED):
             self._pending_safety_cancel = True
             if msg.state_label == STATE_CANCELED:
@@ -97,6 +118,7 @@ class SafetyAwareNavigator(BasicNavigator):
         elif msg.state_label == STATE_RECOVERING and self._recoverable:
             self._pending_recovery_resume = True
 
+    # 继承 Nav2 feedback，记录当前 waypoint 索引
     def _feedbackCallback(self, msg) -> None:
         super()._feedbackCallback(msg)
         feedback = msg.feedback
@@ -105,6 +127,7 @@ class SafetyAwareNavigator(BasicNavigator):
                 self._waypoint_feedback_offset + int(feedback.current_waypoint)
             )
 
+        # 发 goal 前快照任务上下文，recovery 要用
     def goToPose(self, pose, behavior_tree=""):
         if not self._can_start_new_task():
             return False
@@ -127,6 +150,7 @@ class SafetyAwareNavigator(BasicNavigator):
             self._cancel_grace_deadline = None
         return success
 
+        # 多点任务同样保存 waypoints 副本
     def followWaypoints(self, poses):
         if not self._can_start_new_task():
             return False
@@ -151,6 +175,7 @@ class SafetyAwareNavigator(BasicNavigator):
             self._cancel_grace_deadline = None
         return success
 
+        # 每次 poll 先处理 pending cancel/resume
     def isTaskComplete(self):
         self._process_safety_events()
 
@@ -172,6 +197,7 @@ class SafetyAwareNavigator(BasicNavigator):
                 self._recoverable = False
                 return True
 
+            # 旧 goal 的 cancel 可能晚到，给 1s grace 别误判任务结束
             # A safety-triggered cancel from an earlier task can arrive after we
             # have already re-submitted the mission. Treat it as transient and
             # keep the client alive instead of exiting the demo early.
@@ -201,6 +227,7 @@ class SafetyAwareNavigator(BasicNavigator):
             self._cancel_grace_deadline = None
         return complete
 
+        # 把 /safety/state 回调里的标记落地成 cancelTask
     def _process_safety_events(self) -> None:
         if self._pending_safety_cancel:
             self._pending_safety_cancel = False
@@ -226,6 +253,7 @@ class SafetyAwareNavigator(BasicNavigator):
                 return
             self._resume_saved_task()
 
+        # RECOVERING 后按 recovery_mode 重发 goal
     def _resume_saved_task(self) -> None:
         if self._saved_task_type == "pose" and self._saved_pose is not None:
             self.info(f"Recovery mode is {self._recovery_mode}")
@@ -301,6 +329,7 @@ class SafetyAwareNavigator(BasicNavigator):
                 self._recovery_phase = None
                 self.info("Navigation resumed")
 
+        # restart_full_mission：先到起点再 replay
     def _continue_restarted_mission(self) -> bool:
         if self._recovery_phase == "return_to_start_for_pose" and self._original_pose is not None:
             self.info("Reached mission start pose, replaying original goal")
@@ -340,6 +369,7 @@ class SafetyAwareNavigator(BasicNavigator):
 
         return False
 
+        # 从 map->base_link TF 取当前位姿
     def _capture_current_pose(self) -> Optional[PoseStamped]:
         try:
             transform = self._tf_buffer.lookup_transform(
@@ -363,6 +393,7 @@ class SafetyAwareNavigator(BasicNavigator):
         pose.pose.orientation.w = transform.transform.rotation.w
         return pose
 
+        # 任务开始前尽量抓到起点，restart 模式依赖它
     def _ensure_mission_start_pose(self) -> Optional[PoseStamped]:
         pose = self._capture_current_pose()
         if pose is not None:
@@ -382,6 +413,7 @@ class SafetyAwareNavigator(BasicNavigator):
         )
         return None
 
+        # 非 NORMAL 安全态拒绝新 goal，避免和安全层打架
     def _can_start_new_task(self) -> bool:
         if self.safety_state_label != STATE_NORMAL:
             self.warn(
@@ -391,6 +423,7 @@ class SafetyAwareNavigator(BasicNavigator):
             return False
         return True
 
+        # 任务成功后清快照，防止误 recovery
     def _clear_saved_context(self) -> None:
         self._saved_task_type = None
         self._saved_pose = None
@@ -405,15 +438,19 @@ class SafetyAwareNavigator(BasicNavigator):
         self._recovery_phase = None
         self._cancel_grace_deadline = None
 
+    # demo 脚本读当前安全标签
     def get_safety_state_label(self) -> str:
         return self.safety_state_label
 
+    # demo 脚本读触发原因
     def get_safety_reason(self) -> str:
         return self.safety_reason
 
+    # demo 脚本读来源 scan/tf/manual
     def get_safety_source(self) -> str:
         return self.safety_source
 
+        # demo 主循环用来决定是否继续 spin
     def is_waiting_for_recovery(self) -> bool:
         return self._recoverable and self.safety_state_label in (
             STATE_PAUSED,
@@ -421,11 +458,14 @@ class SafetyAwareNavigator(BasicNavigator):
             STATE_RECOVERING,
         )
 
+    # 是否已进入不可恢复的 CANCELED
     def is_terminal_canceled(self) -> bool:
         return self.safety_state_label == STATE_CANCELED
 
+    # 当前 followWaypoints 进度
     def get_current_waypoint_index(self) -> int:
         return self._current_waypoint_index
 
+    # 返回 recovery_mode 参数值
     def get_recovery_mode(self) -> str:
         return self._recovery_mode

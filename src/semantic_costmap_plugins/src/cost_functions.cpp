@@ -1,3 +1,14 @@
+// ========================================================================
+// 文件: src/semantic_costmap_plugins/src/cost_functions.cpp
+// 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+// ========================================================================
+//
+// 【AI-PROMPT】
+// cost_functions：merge_strategy max/add/replace，把 zone cost 写入 master_grid。请生成函数骨架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// 【模块说明】语义 costmap 插件实现，参数见 config/nav2_params_semantic.yaml
+// ========================================================================
 #include "semantic_costmap_plugins/cost_functions.hpp"
 
 #include <algorithm>
@@ -11,6 +22,7 @@ namespace cost_functions
 
 MergeStrategy parseMergeStrategy(const std::string & strategy_name)
 {
+  // yaml 里写 add/max/overwrite，统一解析成枚举
   if (strategy_name == "add" || strategy_name == "addition") {
     return MergeStrategy::Add;
   }
@@ -20,8 +32,11 @@ MergeStrategy parseMergeStrategy(const std::string & strategy_name)
   return MergeStrategy::Max;
 }
 
+
+// modeMatches 接口
 bool modeMatches(const std::string & zone_mode, const std::string & active_mode)
 {
+  // zone.mode 为 all 时任何任务模式都生效
   if (zone_mode.empty() || zone_mode == "all" || zone_mode == "*") {
     return true;
   }
@@ -52,11 +67,11 @@ unsigned char mergeCosts(
   }
 
   if (strategy == MergeStrategy::Max) {
+    // 默认策略：取 master 与本层代价的较大值
     return std::max(master_cost, layer_cost);
   }
 
-  // Addition mode: keep penalties below lethal by saturation, unless a layer
-  // explicitly requests lethal cost.
+  // add 模式：累加但饱和到 lethal 以下，除非本层明确要求 lethal
   if (layer_cost >= LETHAL_OBSTACLE) {
     return LETHAL_OBSTACLE;
   }
@@ -65,6 +80,7 @@ unsigned char mergeCosts(
   return static_cast<unsigned char>(std::min(sum, static_cast<int>(LETHAL_OBSTACLE - 1U)));
 }
 
+// 离车道中心线越远 penalty 越高
 unsigned char lanePenalty(
   double distance_to_lane,
   double corridor_width,
@@ -87,6 +103,7 @@ unsigned char lanePenalty(
   return static_cast<unsigned char>(std::lround(penalty));
 }
 
+// 距离拥堵圆心越近代价越高，带 exponent 衰减
 unsigned char congestionPenalty(
   double distance_to_center,
   double radius,

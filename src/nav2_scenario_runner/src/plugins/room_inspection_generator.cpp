@@ -1,3 +1,13 @@
+// ========================================================================
+// 文件: src/nav2_scenario_runner/src/plugins/room_inspection_generator.cpp
+// 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+// ========================================================================
+//
+// 【AI-PROMPT】
+// RoomInspectionGenerator：在矩形房间内生成网格巡检路径 waypoint，支持 seed 复现。请生成 plugin 类骨架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// ========================================================================
 #include "nav2_scenario_runner/plugins/room_inspection_generator.hpp"
 
 #include "pluginlib/class_list_macros.hpp"
@@ -10,7 +20,10 @@ std::string RoomInspectionGenerator::name() const
   return "room_inspection";
 }
 
+
+// 房间数、障碍密度参数
 void RoomInspectionGenerator::configure(const rclcpp::Node::SharedPtr & node)
+// TODO[陆华均]：FR-A-01 RoomInspectionGenerator：房间巡检路径
 {
   node->declare_parameter("room_size", room_size_);
   node->declare_parameter("doorway_width", doorway_width_);
@@ -18,6 +31,7 @@ void RoomInspectionGenerator::configure(const rclcpp::Node::SharedPtr & node)
   node->get_parameter("doorway_width", doorway_width_);
 }
 
+// 多房间巡检 waypoint
 ScenarioSpec RoomInspectionGenerator::generate(const ScenarioRequest & request)
 {
   ScenarioSpec spec;

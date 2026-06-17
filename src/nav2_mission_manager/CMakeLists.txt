@@ -38,6 +38,15 @@ if(BUILD_TESTING)
   ament_add_pytest_test(test_retry_policy test/test_retry_policy.py)
   ament_add_pytest_test(test_state_machine test/test_state_machine.py)
   ament_add_pytest_test(test_navigator_adapter test/test_navigator_adapter.py)
+  ament_add_pytest_test(test_models test/test_models.py)
+  ament_add_pytest_test(test_mission_action_server test/test_mission_action_server.py TIMEOUT 120)
+
+  # 质量门禁脚本（colcon test 时可选执行）
+  install(
+    PROGRAMS
+      scripts/run_quality_gate.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
 endif()
 
 ament_package()

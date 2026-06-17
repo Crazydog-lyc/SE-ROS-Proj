@@ -1,3 +1,14 @@
+// ========================================================================
+// 文件: src/nav2_scenario_runner/src/scenario_serializer.cpp
+// 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+// ========================================================================
+//
+// 【AI-PROMPT】
+// scenario_serializer：把 ScenarioBundle 写到 case
+// 目录：<case_id>_mission.json、semantic_overlay.yaml、manifest.json。请生成 serialize 函数框架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// ========================================================================
 #include "nav2_scenario_runner/scenario_serializer.hpp"
 
 #include <filesystem>
@@ -60,7 +71,9 @@ YAML::Node eventToNode(const DynamicEvent & event)
   return node;
 }
 
+
 void writeYamlFile(const fs::path & path, const YAML::Node & node)
+// TODO[陆华均]：FR-A-02 每个 case 输出 mission.json + semantic_overlay.yaml
 {
   YAML::Emitter out;
   out << node;
@@ -147,6 +160,7 @@ std::string ScenarioSerializer::sanitizeFileStem(const std::string & stem)
   return std::regex_replace(stem, invalid, "_");
 }
 
+// 写 walls/waypoints/overlay 到磁盘
 void ScenarioSerializer::writeScenarioFiles(const ScenarioSpec & spec, const std::string & output_dir)
 {
   fs::create_directories(output_dir);

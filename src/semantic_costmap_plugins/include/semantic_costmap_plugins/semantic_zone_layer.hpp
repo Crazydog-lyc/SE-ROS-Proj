@@ -1,5 +1,16 @@
-#ifndef SEMANTIC_COSTMAP_PLUGINS__SEMANTIC_ZONE_LAYER_HPP_
-#define SEMANTIC_COSTMAP_PLUGINS__SEMANTIC_ZONE_LAYER_HPP_
+// ========================================================================
+// 文件: src/semantic_costmap_plugins/include/semantic_costmap_plugins/semantic_zone_layer.hpp
+// 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+// ========================================================================
+//
+// 【AI-PROMPT】
+// 基于 Nav2 Humble costmap_2d::Layer，帮我新建 semantic_costmap_plugins 包骨架：SemanticZoneLayer /
+// PreferredLaneLayer / DynamicCongestionLayer 三个插件类，继承 CostmapLayer，先实现
+// onInitialize、updateBounds、updateCosts 空壳和 pluginlib 导出，附带 geometry_utils、cost_functions
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// ========================================================================
+#pragma once
 
 #include <mutex>
 #include <string>
@@ -20,24 +31,25 @@ class SemanticZoneLayer : public nav2_costmap_2d::CostmapLayer
 public:
   SemanticZoneLayer();
 
-  void onInitialize() override;
+
+  void onInitialize() override;  // 读 zone 参数并订阅 task_mode
   void updateBounds(
     double robot_x, double robot_y, double robot_yaw,
-    double * min_x, double * min_y, double * max_x, double * max_y) override;
+    double * min_x, double * min_y, double * max_x, double * max_y) override;  // 更新边界
   void updateCosts(
     nav2_costmap_2d::Costmap2D & master_grid,
-    int min_i, int min_j, int max_i, int max_j) override;
+    int min_i, int min_j, int max_i, int max_j) override;  // 写入 keepout/软代价
   void onFootprintChanged() override;
   void reset() override;
   void matchSize() override;
-  bool isClearable() override {return false;}
+  bool isClearable() override {return false;}  // 语义层不参与 clear
 
 private:
-  void loadZonesFromParameters();
-  bool zoneContains(const SemanticZone & zone, double wx, double wy) const;
+  void loadZonesFromParameters();  // 从参数加载 zones.<name>.*
+  bool zoneContains(const SemanticZone & zone, double wx, double wy) const;  // 点是否在 zone 内
   unsigned char zoneCostForPoint(const SemanticZone & zone, double wx, double wy) const;
   bool shouldApplyOnCell(unsigned char master_cost, const SemanticZone & zone) const;
-  void onTaskModeMessage(const std_msgs::msg::String::SharedPtr msg);
+  void onTaskModeMessage(const std_msgs::msg::String::SharedPtr msg);  // 切换 active_mode_
 
   mutable std::mutex mutex_;
   std::vector<SemanticZone> zones_;
@@ -50,5 +62,3 @@ private:
 };
 
 }  // namespace semantic_costmap_plugins
-
-#endif  // SEMANTIC_COSTMAP_PLUGINS__SEMANTIC_ZONE_LAYER_HPP_

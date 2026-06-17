@@ -1,3 +1,16 @@
+// ========================================================================
+// 文件: src/semantic_costmap_plugins/src/semantic_zone_layer.cpp
+// 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+// ========================================================================
+//
+// 【AI-PROMPT】
+// SemanticZoneLayer：从 ROS 参数加载 zones（矩形/圆/多边形），updateCosts 按 active_mode 融合
+// keepout/high-cost，订阅 /semantic_task_mode。请生成
+// onInitialize、loadZonesFromParameters、updateCosts 框架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// 【模块说明】语义 costmap 插件实现，参数见 config/nav2_params_semantic.yaml
+// ========================================================================
 #include "semantic_costmap_plugins/semantic_zone_layer.hpp"
 
 #include <algorithm>
@@ -18,11 +31,13 @@
 namespace semantic_costmap_plugins
 {
 
+
 SemanticZoneLayer::SemanticZoneLayer()
 : active_mode_("all")
 {
 }
 
+// 插件初始化：读参数、订阅 topic
 void SemanticZoneLayer::onInitialize()
 {
   auto node = node_.lock();
@@ -30,6 +45,7 @@ void SemanticZoneLayer::onInitialize()
     throw std::runtime_error("SemanticZoneLayer failed to lock lifecycle node");
   }
 
+  // 参数都在 nav2_params_semantic.yaml 的 plugin 段里
   enabled_ = parameter_utils::getBool(node, name_ + ".enabled", true);
   task_mode_topic_ = parameter_utils::getString(
     node, name_ + ".task_mode_topic", "/semantic_task_mode");
@@ -56,6 +72,7 @@ void SemanticZoneLayer::onInitialize()
     name_.c_str(), zones_.size(), active_mode_.c_str());
 }
 
+// 从参数服务器加载 zone 列表
 void SemanticZoneLayer::loadZonesFromParameters()
 {
   auto node = node_.lock();
@@ -66,10 +83,12 @@ void SemanticZoneLayer::loadZonesFromParameters()
   std::lock_guard<std::mutex> lock(mutex_);
   zones_.clear();
 
+  // zone_names 列表决定加载哪些子段 zones.<name>.*
   const auto zone_names = parameter_utils::getStringArray(node, name_ + ".zone_names", {});
 
   for (const auto & zone_name : zone_names) {
     const std::string prefix = name_ + ".zones." + zone_name + ".";
+    // 每个 zone 可以是 rect/circle/polygon
     SemanticZone zone;
     zone.name = zone_name;
     zone.enabled = parameter_utils::getBool(node, prefix + "enabled", true);
@@ -109,11 +128,13 @@ void SemanticZoneLayer::loadZonesFromParameters()
       zone.yaw = parameter_utils::getDouble(node, prefix + "yaw", 0.0);
     }
 
-    zones_.push_back(zone);
+    zones_.push_back(zone);  // 加入本 layer 的 zone 列表
   }
 }
 
+// zoneContains 接口
 bool SemanticZoneLayer::zoneContains(const SemanticZone & zone, double wx, double wy) const
+// TODO[李熠城]：FR-C-02 updateCosts 中将 zone 代价融合进 master costmap
 {
   switch (zone.shape) {
     case ShapeType::Circle:
@@ -126,12 +147,14 @@ bool SemanticZoneLayer::zoneContains(const SemanticZone & zone, double wx, doubl
   }
 }
 
-unsigned char SemanticZoneLayer::zoneCostForPoint(const SemanticZone & zone, double wx, double wy) const
+// 根据 zone 形状算单点代价
+ unsigned char SemanticZoneLayer::zoneCostForPoint(const SemanticZone & zone, double wx, double wy) const
 {
   return zoneContains(zone, wx, wy) ? zone.cost : 0U;
 }
 
-bool SemanticZoneLayer::shouldApplyOnCell(unsigned char master_cost, const SemanticZone & zone) const
+// unknown 栅格是否叠加语义代价
+ bool SemanticZoneLayer::shouldApplyOnCell(unsigned char master_cost, const SemanticZone & zone) const
 {
   if (!zone.apply_to_unknown && master_cost == nav2_costmap_2d::NO_INFORMATION) {
     return false;
@@ -139,6 +162,7 @@ bool SemanticZoneLayer::shouldApplyOnCell(unsigned char master_cost, const Seman
   return true;
 }
 
+// updateBounds 接口
 void SemanticZoneLayer::updateBounds(
   double /*robot_x*/, double /*robot_y*/, double /*robot_yaw*/,
   double * min_x, double * min_y, double * max_x, double * max_y)
@@ -163,6 +187,7 @@ void SemanticZoneLayer::updateBounds(
   *max_y = std::max(*max_y, max_y_world);
 }
 
+// updateCosts 接口
 void SemanticZoneLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid,
   int min_i, int min_j, int max_i, int max_j)
@@ -188,6 +213,7 @@ void SemanticZoneLayer::updateCosts(
   max_i = std::min(static_cast<int>(size_x), max_i);
   max_j = std::min(static_cast<int>(size_y), max_j);
 
+  // 双层循环遍历 costmap 更新窗口
   for (int j = min_j; j < max_j; ++j) {
     for (int i = min_i; i < max_i; ++i) {
       double wx = 0.0;
@@ -198,6 +224,7 @@ void SemanticZoneLayer::updateCosts(
       const unsigned char master_cost = master_grid.getCost(i, j);
 
       for (const auto & zone : zones_copy) {
+        // 任务模式不匹配或未启用的 zone 跳过
         if (!zone.enabled || !cost_functions::modeMatches(zone.mode, active_mode_copy)) {
           continue;
         }
@@ -208,6 +235,7 @@ void SemanticZoneLayer::updateCosts(
       }
 
       if (best_layer_cost > 0U) {
+        // keepout / soft cost 按 merge_strategy 写入 master
         master_grid.setCost(
           i, j,
           cost_functions::mergeCosts(master_cost, best_layer_cost, merge_strategy_));
@@ -217,16 +245,19 @@ void SemanticZoneLayer::updateCosts(
   current_ = true;
 }
 
+// footprint 变化时标记需要重算
 void SemanticZoneLayer::onFootprintChanged()
 {
   current_ = true;
 }
 
+// layer reset 回调
 void SemanticZoneLayer::reset()
 {
   current_ = true;
 }
 
+// 与 master costmap 尺寸对齐
 void SemanticZoneLayer::matchSize()
 {
   auto * master = layered_costmap_->getCostmap();
@@ -240,7 +271,8 @@ void SemanticZoneLayer::matchSize()
   }
 }
 
-void SemanticZoneLayer::onTaskModeMessage(const std_msgs::msg::String::SharedPtr msg)
+// 收到 task_mode 后刷新 active_mode_
+ void SemanticZoneLayer::onTaskModeMessage(const std_msgs::msg::String::SharedPtr msg)
 {
   {
     std::lock_guard<std::mutex> lock(mutex_);

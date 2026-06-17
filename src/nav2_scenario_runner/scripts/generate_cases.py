@@ -1,4 +1,16 @@
+# ========================================================================
+# 文件: src/nav2_scenario_runner/scripts/generate_cases.py
+# 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+# ========================================================================
+#
+# 【AI-PROMPT】
+# generate_cases.py：读 batch_profiles/*.yaml，展开 case 矩阵，对每个 case 调 ros2 run
+# generate_scenario_node，输出到 --output-dir。请生成 argparse + profile 解析 + subprocess 调用框架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #!/usr/bin/env python3
+# 【批跑说明】输出目录结构：cases/<case_id>/{world,mission,metrics}
 import argparse
 import csv
 import json
@@ -11,13 +23,16 @@ from ament_index_python.packages import get_package_share_directory
 import yaml
 
 GENERATOR_MAP = {
+    # 字符串类型 -> pluginlib 全名，和 plugins.xml 里一致
     "corridor": "nav2_scenario_runner::plugins::CorridorGenerator",
     "room_inspection": "nav2_scenario_runner::plugins::RoomInspectionGenerator",
     "congestion": "nav2_scenario_runner::plugins::CongestionGenerator",
     "fault_injection": "nav2_scenario_runner::plugins::FaultInjectionGenerator",
 }
 
+
 def build_ros_args(case: Dict[str, Any], output_dir: pathlib.Path) -> List[str]:
+    # 每个 case 启一个 generate_scenario_node 子进程
     scenario_type = case.get("scenario_type", "corridor")
     plugin = case.get("generator_plugin", GENERATOR_MAP.get(scenario_type, GENERATOR_MAP["corridor"]))
     return [
@@ -45,6 +60,7 @@ def _load_yaml(path: pathlib.Path) -> Dict[str, Any]:
 
 
 def _write_mission_file(case_id: str, waypoints_path: pathlib.Path, output_dir: pathlib.Path) -> pathlib.Path:
+    # scenario 插件输出的是 yaml waypoint，这里转成 mission_manager 要的 json
     payload = _load_yaml(waypoints_path)
     mission = {
         "mission_id": f"{case_id}_mission",
@@ -111,6 +127,7 @@ def write_companion_files(case_id: str, output_dir: pathlib.Path) -> None:
     _write_mission_file(case_id, waypoints_path, output_dir)
     _write_semantic_overlay(case_id, semantic_path, output_dir)
 
+# 读 profile -> 展开 case 矩阵 -> subprocess 生成
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", required=True)

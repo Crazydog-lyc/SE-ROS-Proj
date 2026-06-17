@@ -1,3 +1,20 @@
+# ========================================================================
+# 文件: src/nav2_mission_manager/config/mission_manager.yaml
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# mission_manager
+# 节点参数：nav2_ready_timeout_sec、goal_timeout_sec、safety_clear_hold_sec、feedback_poll_period_sec
+# 等默认值。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
+# =============================================================================
+# src/nav2_mission_manager/config/mission_manager.yaml  |  负责人: 徐梓鸣
+# =============================================================================
+# 【AI】提示词: "mission_manager 节点参数：nav2_ready_timeout_sec、goal_timeout_sec、safety_clear_hold_sec、feedback_poll_period_sec 等默认值。"
+# TODO[徐梓鸣]： 参数调优与场景配置
 mission_action_server:
   ros__parameters:
     nav2_ready_timeout_sec: 60.0

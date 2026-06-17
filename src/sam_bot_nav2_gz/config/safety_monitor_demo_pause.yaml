@@ -1,3 +1,20 @@
+# ========================================================================
+# 文件: src/sam_bot_nav2_gz/config/safety_monitor_demo_pause.yaml
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 在 sam_bot_safety_monitor 里帮我搭 SafetyMonitor 节点骨架（Python rclpy）：订阅 /scan、/odom，发布
+# /safety/state（course_interfaces），提供 TriggerPause / TriggerEmergencyStop / TriggerCancel
+# / RequestRecovery 服务，先把参数 declare、QoS、服务/话题注册和 monitor 定时器框架写好，检测逻辑我后面实现。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
+# =============================================================================
+# src/sam_bot_nav2_gz/config/safety_monitor_demo_pause.yaml  |  负责人: 苏易
+# =============================================================================
+# 【AI】提示词: "在 sam_bot_safety_monitor 里帮我搭 SafetyMonitor 节点骨架（Python rclpy）：订阅 /scan、/odom，发布 /safety/state（course_interfaces），提供 TriggerPause / TriggerEmergencyStop / TriggerCancel / RequestRecovery 服务，先把参数 declare、QoS、服务/话题注册和 monitor 定时器框架写好，检测逻辑我后面实现。"
+# TODO[苏易]： 参数调优与场景配置
 safety_monitor:
   ros__parameters:
     use_sim_time: True

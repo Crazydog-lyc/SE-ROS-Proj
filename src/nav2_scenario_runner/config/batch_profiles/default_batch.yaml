@@ -1,3 +1,19 @@
+# ========================================================================
+# 文件: src/nav2_scenario_runner/config/batch_profiles/default_batch.yaml
+# 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+# ========================================================================
+#
+# 【AI-PROMPT】
+# batch profile yaml：generators 列表、case 矩阵（scenario_type x seed）、output 目录模板，供
+# generate_cases.py 读取。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
+# =============================================================================
+# src/nav2_scenario_runner/config/batch_profiles/default_batch.yaml  |  负责人: 陆华均
+# =============================================================================
+# 【AI】提示词: "batch profile yaml：generators 列表、case 矩阵（scenario_type x seed）、output 目录模板，供 generate_cases.py 读取。"
+# TODO[陆华均]： 参数调优与场景配置
 cases:
   - case_id: corridor_seed_001
     scenario_type: corridor

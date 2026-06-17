@@ -1,3 +1,10 @@
+# =============================================================================
+# src/nav2_scenario_runner/README.md
+# 负责人: 陆华均  |  需求域: FR-A
+# =============================================================================
+# 【AI】提示词: "nav2_scenario_runner README：build 命令、generate_cases/run_batch/s summarize 三步流水线，列出四个 generator 插件名。请生成 Markdown 骨架。"
+# -----------------------------------------------------------------------------
+# 【AI】launch/脚本入口框架
 # nav2_scenario_runner
 
 Plugin-based scenario generation and batch evaluation framework for Nav2.

@@ -1,4 +1,21 @@
+# ========================================================================
+# 文件: src/sam_bot_safety_monitor/scripts/reach_goal_demo_pause_near_obstacle.py
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# Demo 脚本：启动 safety_aware 导航到单点，配合 safety_monitor 展示 pause/estop/recovery。请基于
+# reach_goal.py 改写成带 SafetyState 监听的框架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #! /usr/bin/env python3
+
+# ---------------------------------------------------------------------------
+# 【场景】单点 reach_goal 演示
+# 【演示脚本说明】Gazebo 联调用；print 便于录屏。需先起 safety_monitor + Nav2。
+# ---------------------------------------------------------------------------
+
 
 import math
 
@@ -8,7 +25,7 @@ import rclpy
 from rclpy.duration import Duration
 from course_interfaces.srv import RequestRecovery
 
-from sam_bot_safety_monitor.safety_navigation import SafetyAwareNavigator
+from sam_bot_safety_monitor.safety_navigation import SafetyAwareNavigator  # 订阅 /safety/state 做 cancel
 
 
 DEMO_GOAL = (1.2, 0.0, 0.0)
@@ -26,6 +43,8 @@ def _create_goal_pose(navigator: SafetyAwareNavigator, x: float, y: float, yaw: 
     return pose
 
 
+
+# 配合 safety_monitor 的近障 pause 演示
 def main():
     rclpy.init()
     navigator = SafetyAwareNavigator(
@@ -80,6 +99,7 @@ def main():
         flush=True,
     )
 
+    # 朝障碍方向走，触发 scan 近障
     if not navigator.goToPose(goal_pose):
         print("[DEMO B] goal request was rejected immediately", flush=True)
         raise SystemExit(1)
@@ -89,6 +109,7 @@ def main():
     feedback_counter = 0
     demo_pause_completed = False
 
+    # 打印 PAUSED -> RECOVERING 过程
     while rclpy.ok():
         task_complete = navigator.isTaskComplete()
         safety_state = navigator.get_safety_state_label()
@@ -153,3 +174,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ---------------------------------------------------------------------------
+# 【联调检查清单】
+# 录屏时建议同时开 rqt 看 /safety/state 与 /mission/state
+# 堵塞 demo 记得开 enable_blockage_monitor
+# 1. safety_monitor 已 active 且 /scan /odom 有数据
+# 2. Nav2 lifecycle 到 active，localizer 与 launch 一致
+# 3. RViz 里能看到 robot 与 costmap
+# 4. 故意触发 pause 时 mission_manager 应进入 PAUSED_FOR_SAFETY
+# ---------------------------------------------------------------------------

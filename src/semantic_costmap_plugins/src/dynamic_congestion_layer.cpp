@@ -1,3 +1,14 @@
+// ========================================================================
+// 文件: src/semantic_costmap_plugins/src/dynamic_congestion_layer.cpp
+// 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+// ========================================================================
+//
+// 【AI-PROMPT】
+// DynamicCongestionLayer：订阅 congestion 话题，在圆形区域内动态提高代价，带 decay。请生成订阅回调和 updateCosts 框架。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// 【模块说明】语义 costmap 插件实现，参数见 config/nav2_params_semantic.yaml
+// ========================================================================
 #include "semantic_costmap_plugins/dynamic_congestion_layer.hpp"
 
 #include <algorithm>
@@ -16,10 +27,13 @@
 namespace semantic_costmap_plugins
 {
 
+
 DynamicCongestionLayer::DynamicCongestionLayer() = default;
 
+// 插件初始化：读参数、订阅 topic
 void DynamicCongestionLayer::onInitialize()
 {
+  // 订阅 /semantic_congestion_events，动态抬高局部代价
   auto node = node_.lock();
   if (!node) {
     throw std::runtime_error("DynamicCongestionLayer failed to lock lifecycle node");
@@ -49,6 +63,7 @@ void DynamicCongestionLayer::onInitialize()
     name_.c_str(), event_topic_.c_str());
 }
 
+// 收到拥堵事件消息，追加到 events_
 void DynamicCongestionLayer::onEventMessage(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
 {
   auto node = node_.lock();
@@ -62,6 +77,7 @@ void DynamicCongestionLayer::onEventMessage(const std_msgs::msg::Float32MultiArr
   }
 
   if ((data.size() % 6U) != 0U && (data.size() % 5U) != 0U) {
+    // 每条事件 5 或 6 个 float：x,y,r,peak,ttl[,exponent]
     RCLCPP_WARN(
       node->get_logger(),
       "[%s] ignored congestion message because data length %zu is not a multiple of 5 or 6",
@@ -93,8 +109,10 @@ void DynamicCongestionLayer::onEventMessage(const std_msgs::msg::Float32MultiArr
   current_ = false;
 }
 
+// 清理 TTL 过期的动态事件
 void DynamicCongestionLayer::pruneExpiredEvents(double now_sec)
 {
+  // TTL 过了就删，避免 events_ 无限涨
   events_.erase(
     std::remove_if(
       events_.begin(), events_.end(),
@@ -104,6 +122,7 @@ void DynamicCongestionLayer::pruneExpiredEvents(double now_sec)
     events_.end());
 }
 
+// shouldApplyOnCell 接口
 bool DynamicCongestionLayer::shouldApplyOnCell(unsigned char master_cost) const
 {
   if (!apply_to_unknown_ && master_cost == nav2_costmap_2d::NO_INFORMATION) {
@@ -112,6 +131,7 @@ bool DynamicCongestionLayer::shouldApplyOnCell(unsigned char master_cost) const
   return true;
 }
 
+// updateBounds 接口
 void DynamicCongestionLayer::updateBounds(
   double /*robot_x*/, double /*robot_y*/, double /*robot_yaw*/,
   double * min_x, double * min_y, double * max_x, double * max_y)
@@ -136,6 +156,7 @@ void DynamicCongestionLayer::updateBounds(
   *max_y = std::max(*max_y, max_y_world);
 }
 
+// updateCosts 接口
 void DynamicCongestionLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid,
   int min_i, int min_j, int max_i, int max_j)
@@ -167,6 +188,7 @@ void DynamicCongestionLayer::updateCosts(
   max_i = std::min(static_cast<int>(size_x), max_i);
   max_j = std::min(static_cast<int>(size_y), max_j);
 
+  // 双层循环遍历 costmap 更新窗口
   for (int j = min_j; j < max_j; ++j) {
     for (int i = min_i; i < max_i; ++i) {
       double wx = 0.0;
@@ -180,6 +202,7 @@ void DynamicCongestionLayer::updateCosts(
 
       unsigned char best_penalty = 0U;
       for (const auto & event : events_copy) {
+        // 多个拥堵圆重叠时取最大 penalty
         const double d = geometry_utils::distance(wx, wy, event.x, event.y);
         best_penalty = std::max(
           best_penalty,
@@ -195,11 +218,13 @@ void DynamicCongestionLayer::updateCosts(
   }
 }
 
+// footprint 变化时标记需要重算
 void DynamicCongestionLayer::onFootprintChanged()
 {
   current_ = false;
 }
 
+// layer reset 回调
 void DynamicCongestionLayer::reset()
 {
   std::lock_guard<std::mutex> lock(mutex_);
@@ -207,6 +232,7 @@ void DynamicCongestionLayer::reset()
   current_ = true;
 }
 
+// 与 master costmap 尺寸对齐
 void DynamicCongestionLayer::matchSize()
 {
   auto * master = layered_costmap_->getCostmap();

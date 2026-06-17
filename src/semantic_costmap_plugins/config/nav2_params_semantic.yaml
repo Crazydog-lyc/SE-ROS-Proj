@@ -1,3 +1,19 @@
+# ========================================================================
+# 文件: src/semantic_costmap_plugins/config/nav2_params_semantic.yaml
+# 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 在 sam_bot_nav2_gz nav2_params 基础上，global_costmap 启用 SemanticZoneLayer 插件，写一份
+# nav2_params_semantic.yaml 骨架，zones 参数可以先放 demo 禁行区占位。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
+# =============================================================================
+# src/semantic_costmap_plugins/config/nav2_params_semantic.yaml  |  负责人: 李熠城
+# =============================================================================
+# 【AI】提示词: "在 sam_bot_nav2_gz nav2_params 基础上，global_costmap 启用 SemanticZoneLayer 插件，写一份 nav2_params_semantic.yaml 骨架，zones 参数可以先放 demo 禁行区占位。"
+# TODO[李熠城]： 参数调优与场景配置
 amcl:
   ros__parameters:
     use_sim_time: True

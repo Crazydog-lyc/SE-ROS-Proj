@@ -1,3 +1,14 @@
+// ========================================================================
+// 文件: src/semantic_costmap_plugins/src/geometry_utils.cpp
+// 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+// ========================================================================
+//
+// 【AI-PROMPT】
+// geometry_utils：world↔map 坐标、点是否在圆/多边形内、栅格索引。请生成纯函数声明和空实现，方便 gtest。
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// 【模块说明】语义 costmap 插件实现，参数见 config/nav2_params_semantic.yaml
+// ========================================================================
 #include "semantic_costmap_plugins/geometry_utils.hpp"
 
 #include <algorithm>
@@ -11,6 +22,7 @@ namespace geometry_utils
 
 double deg2rad(double degrees)
 {
+  // 参数里的角度一般是度，内部计算用弧度
   constexpr double kPi = 3.14159265358979323846;
   return degrees * kPi / 180.0;
 }
@@ -41,11 +53,13 @@ Point2D translatePoint(const Point2D & point, double tx, double ty)
   return Point2D{point.x + tx, point.y + ty};
 }
 
+
 bool pointInCircle(
   double px, double py,
   double cx, double cy,
   double radius)
 {
+  // 圆心距离平方比较，避免开方
   if (radius <= 0.0) {
     return false;
   }
@@ -62,7 +76,7 @@ bool pointInRotatedRectangle(
     return false;
   }
 
-  // Transform the query point into the rectangle frame.
+  // 把查询点变换到矩形局部坐标系再判范围
   const double dx = px - cx;
   const double dy = py - cy;
   const double c = std::cos(-yaw_rad);
@@ -78,6 +92,7 @@ bool pointInPolygon(
   double px, double py,
   const std::vector<Point2D> & polygon)
 {
+  // 射线法判点是否在多边形内，keepout 区域用
   if (polygon.size() < 3U) {
     return false;
   }
@@ -100,6 +115,7 @@ bool pointInPolygon(
   return inside;
 }
 
+// 点到线段最短距离，lane penalty 核心
 double distancePointToSegment(
   double px, double py,
   const Point2D & a,
@@ -124,6 +140,7 @@ double distancePointToPolyline(
   double px, double py,
   const std::vector<Point2D> & points)
 {
+  // 到折线各段距离的最小值，偏好车道 penalty 依赖这个
   if (points.empty()) {
     return std::numeric_limits<double>::infinity();
   }
@@ -139,6 +156,7 @@ double distancePointToPolyline(
   return best;
 }
 
+// 至少两个点才算折线
 bool validPolyline(const std::vector<Point2D> & points)
 {
   return points.size() >= 2U;

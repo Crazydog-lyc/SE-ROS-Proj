@@ -1,20 +1,34 @@
+# ========================================================================
+# 文件: src/nav2_mission_manager/nav2_mission_manager/mission_loader.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# load_mission_file(path) 读 JSON mission：mission_id、frame_id、waypoints[{id,x,y,yaw}]，校验失败抛
+# MissionLoadError，请生成解析函数和 dataclass 映射骨架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 import json
 from pathlib import Path
 
 from .models import MissionSpec, WaypointSpec
 
 
+
 class MissionLoadError(ValueError):
-    """Raised when a mission file is invalid."""
+    """mission JSON 格式不对时抛出，上层转成 MISSION_INVALID。"""
 
 
 def _require_numeric(value: object, field_name: str) -> float:
+    # 坐标字段必须是数字，否则后面 Nav2 会 silently 发错点
     if not isinstance(value, (int, float)):
         raise MissionLoadError(f"Field '{field_name}' must be numeric.")
     return float(value)
 
 
 def load_mission_file(mission_file: str) -> MissionSpec:
+    # 支持相对路径，batch 生成的 case 目录里常用
     path = Path(mission_file)
     if not path.exists():
         raise MissionLoadError(f"Mission file does not exist: {path}")

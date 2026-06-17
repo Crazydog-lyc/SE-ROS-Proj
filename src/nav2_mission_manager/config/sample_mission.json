@@ -1,3 +1,17 @@
+# ========================================================================
+# 文件: src/nav2_mission_manager/config/sample_mission.json
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 示例 mission JSON：2~4 个 bookstore 地图内 waypoint，mission_id + frame_id map，供 mission_demo
+# 一键测试。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
+# [src/nav2_mission_manager/config/sample_mission.json] 负责人: 徐梓鸣
+# 【AI】提示词: "示例 mission JSON：2~4 个 bookstore 地图内 waypoint，mission_id + frame_id map，供 mission_demo 一键测试。"
+# TODO[徐梓鸣]：FR-B-01 示例 mission waypoint 坐标
 {
   "mission_id": "sample_square",
   "frame_id": "map",

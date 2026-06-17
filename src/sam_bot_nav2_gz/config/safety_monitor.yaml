@@ -1,3 +1,20 @@
+# ========================================================================
+# 文件: src/sam_bot_nav2_gz/config/safety_monitor.yaml
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# safety_monitor 参数
+# yaml：scan_topic、sensor_timeout_sec、obstacle_pause_distance、blockage_window_sec 等，请按
+# declare_parameter 名称生成默认配置骨架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
+# =============================================================================
+# src/sam_bot_nav2_gz/config/safety_monitor.yaml  |  负责人: 苏易
+# =============================================================================
+# 【AI】提示词: "safety_monitor 参数 yaml：scan_topic、sensor_timeout_sec、obstacle_pause_distance、blockage_window_sec 等，请按 declare_parameter 名称生成默认配置骨架。"
+# TODO[苏易]： 参数调优与场景配置
 safety_monitor:
   ros__parameters:
     use_sim_time: True

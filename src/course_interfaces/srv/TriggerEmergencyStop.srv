@@ -1,3 +1,13 @@
+# ========================================================================
+# 文件: src/course_interfaces/srv/TriggerEmergencyStop.srv
+# 负责人: 苏易 | 需求: FR-D | PPT: 第19-20页 安全监控
+# ========================================================================
+#
+# 【AI-PROMPT】
+# TriggerEmergencyStop.srv：触发紧急停车，发布 STOP_NOW 并 zero cmd_vel，响应 success。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 string reason
 ---
 bool success

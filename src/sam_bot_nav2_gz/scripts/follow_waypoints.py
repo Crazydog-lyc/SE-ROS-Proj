@@ -1,3 +1,14 @@
+# ========================================================================
+# 文件: src/sam_bot_nav2_gz/scripts/follow_waypoints.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# nav2_simple_commander followWaypoints Demo，waypoint 从 yaml 读。用于验证多点导航，后续由
+# mission_manager 接管。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #! /usr/bin/env python3
 # Copyright 2021 Samsung Research America
 #
@@ -95,6 +106,7 @@ waypoints:
       z: 0.7179595085705036
       w: 0.6960848684271199
 ''')
+
 
 def main():
     rclpy.init()

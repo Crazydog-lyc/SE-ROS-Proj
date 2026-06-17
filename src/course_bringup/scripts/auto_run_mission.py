@@ -1,4 +1,16 @@
+# ========================================================================
+# 文件: src/course_bringup/scripts/auto_run_mission.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# 写一个 auto_run_mission CLI 节点：ActionClient 连 /mission/run，从参数读 mission_file，send_goal 后
+# spin 等 result，打印 feedback。请生成 Node 类和 main 入口框架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 #!/usr/bin/env python3
+# 【集成脚本】course 全栈联调辅助
 
 import sys
 
@@ -8,6 +20,8 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 
 
+
+# CLI 封装 /mission/run，batch 跑 case 时用
 class AutoRunMission(Node):
     def __init__(self) -> None:
         super().__init__("auto_run_mission")
@@ -17,7 +31,8 @@ class AutoRunMission(Node):
         self.declare_parameter("server_timeout_sec", 120.0)
         self._client = ActionClient(self, RunMission, "/mission/run")
 
-    def run(self) -> int:
+    # 等 server -> send_goal -> 等 result
+def run(self) -> int:
         mission_file = str(self.get_parameter("mission_file").value)
         if not mission_file:
             self.get_logger().error("mission_file parameter is required")
@@ -30,7 +45,8 @@ class AutoRunMission(Node):
             return 1
 
         goal = RunMission.Goal()
-        goal.mission_file = mission_file
+        # 路径来自 launch 参数或命令行
+goal.mission_file = mission_file
         goal.max_retry_per_waypoint = int(
             self.get_parameter("max_retry_per_waypoint").value
         )
@@ -40,6 +56,7 @@ class AutoRunMission(Node):
 
         self.get_logger().info(f"Sending mission goal for {mission_file}")
         send_future = self._client.send_goal_async(goal, feedback_callback=self._on_feedback)
+        # 阻塞等到 goal 被 accept
         rclpy.spin_until_future_complete(self, send_future)
         goal_handle = send_future.result()
         if goal_handle is None or not goal_handle.accepted:
@@ -47,6 +64,7 @@ class AutoRunMission(Node):
             return 1
 
         result_future = goal_handle.get_result_async()
+        # 阻塞等到 mission 终态
         rclpy.spin_until_future_complete(self, result_future)
         result_wrapper = result_future.result()
         if result_wrapper is None:
@@ -65,7 +83,8 @@ class AutoRunMission(Node):
         )
         return 1
 
-    def _on_feedback(self, feedback_msg) -> None:
+    # 把 Action feedback 打到日志，便于对照 RViz
+def _on_feedback(self, feedback_msg) -> None:
         feedback = feedback_msg.feedback
         self.get_logger().info(
             "Mission feedback: "
@@ -75,6 +94,7 @@ class AutoRunMission(Node):
         )
 
 
+# 入口：初始化 navigator、发 goal、主循环 spin
 def main() -> int:
     rclpy.init()
     node = AutoRunMission()

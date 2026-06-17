@@ -1,5 +1,16 @@
-#ifndef SEMANTIC_COSTMAP_PLUGINS__SEMANTIC_TYPES_HPP_
-#define SEMANTIC_COSTMAP_PLUGINS__SEMANTIC_TYPES_HPP_
+// ========================================================================
+// 文件: src/semantic_costmap_plugins/include/semantic_costmap_plugins/semantic_types.hpp
+// 负责人: 李熠城 | 需求: FR-C | PPT: 第17-18页 语义costmap
+// ========================================================================
+//
+// 【AI-PROMPT】
+// 基于 Nav2 Humble costmap_2d::Layer，帮我新建 semantic_costmap_plugins 包骨架：SemanticZoneLayer /
+// PreferredLaneLayer / DynamicCongestionLayer 三个插件类，继承 CostmapLayer，先实现
+// onInitialize、updateBounds、updateCosts 空壳和 pluginlib 导出，附带 geometry_utils、cost_functions
+//
+// 【AI-SCOPE】import · declare · register · 插件/接口空壳
+// ========================================================================
+#pragma once
 
 #include <string>
 #include <vector>
@@ -25,6 +36,7 @@ struct SemanticZone
   std::string name;
   std::string mode {"all"};
   ShapeType shape {ShapeType::Rectangle};
+
   bool enabled {true};
 
   // Common cost settings
@@ -76,5 +88,3 @@ enum class MergeStrategy
 };
 
 }  // namespace semantic_costmap_plugins
-
-#endif  // SEMANTIC_COSTMAP_PLUGINS__SEMANTIC_TYPES_HPP_

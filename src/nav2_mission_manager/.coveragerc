@@ -1,0 +1,15 @@
+[run]
+source = nav2_mission_manager
+branch = True
+omit =
+    */test/*
+    */mission_manager_node.py
+
+[report]
+precision = 1
+show_missing = True
+skip_covered = False
+fail_under = 90
+
+[html]
+directory = coverage_html

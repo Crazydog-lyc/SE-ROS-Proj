@@ -1,5 +1,18 @@
+# ========================================================================
+# 文件: src/course_bringup/launch/full_stack.launch.py
+# 负责人: 徐梓鸣 | 需求: FR-B | PPT: 第15-16页 任务管理
+# ========================================================================
+#
+# 【AI-PROMPT】
+# course_bringup/full_stack.launch.py：Include sam_bot_nav2_gz complete_navigation，可选启动
+# mission_manager、safety_monitor，nav2_params 在 base/semantic 间切换。请用 OpaqueFunction +
+# DeclareLaunchArgument 生成 launch 骨架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# 默认 map/params 在 course_bringup/config，可用 launch arg 覆盖
+# ========================================================================
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
+from launch import LaunchDescription  # 组合子 launch，见各 IncludeLaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
@@ -8,7 +21,7 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration  # 参数来自 launch arg
 from launch_ros.actions import Node
 from pathlib import Path
 
@@ -79,6 +92,8 @@ def _build_actions(context):
     return actions
 
 
+
+# 一键起 Gazebo + Nav2 + mission + safety
 def generate_launch_description():
     return LaunchDescription(
         [

@@ -1,5 +1,16 @@
+# ========================================================================
+# 文件: src/course_bringup/launch/scenario_case.launch.py
+# 负责人: 陆华均 | 需求: FR-A | PPT: 第21-22页 场景生成
+# ========================================================================
+#
+# 【AI-PROMPT】
+# scenario_case.launch.py：从 LaunchConfiguration 读 case 目录，加载 generated mission + semantic
+# overlay + world，启动 full_stack。请生成参数声明和 IncludeLaunchDescription 框架。
+#
+# 【AI-SCOPE】import · declare · register · 插件/接口空壳
+# ========================================================================
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
+from launch import LaunchDescription  # 组合子 launch，见各 IncludeLaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
@@ -10,7 +21,7 @@ from launch.actions import (
 )
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration  # 参数来自 launch arg
 from launch_ros.actions import Node
 from pathlib import Path
 import yaml
@@ -89,6 +100,8 @@ def _build_actions(context):
     return actions
 
 
+
+# 单个 scenario case 的 bringup
 def generate_launch_description():
     return LaunchDescription(
         [
