@@ -16,7 +16,7 @@
 using semantic_costmap_plugins::Point2D;
 namespace gu = semantic_costmap_plugins::geometry_utils;
 
-// 几何工具 gtest
+// TODO[李熠城]：FR-C-01 几何判定与距离计算 gtest 用例
 TEST(GeometryUtils, PointInsideCircle)
 {
   EXPECT_TRUE(gu::pointInCircle(0.0, 0.0, 0.0, 0.0, 1.0));

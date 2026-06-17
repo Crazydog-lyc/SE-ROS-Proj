@@ -17,7 +17,7 @@
 namespace cf = semantic_costmap_plugins::cost_functions;
 using semantic_costmap_plugins::MergeStrategy;
 
-// merge/max/add 行为
+// TODO[李熠城]：FR-C-03 代价融合与惩罚函数 gtest 用例
 TEST(CostFunctions, ModeMatching)
 {
   EXPECT_TRUE(cf::modeMatches("all", "patrol"));

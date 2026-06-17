@@ -149,6 +149,7 @@ void PreferredLaneLayer::updateBounds(
 }
 
 // updateCosts 接口
+// TODO[李熠城]：FR-C-04 按到偏好车道折线距离计算 penalty 并融合进 master costmap
 void PreferredLaneLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid,
   int min_i, int min_j, int max_i, int max_j)

@@ -132,9 +132,8 @@ void SemanticZoneLayer::loadZonesFromParameters()
   }
 }
 
-// zoneContains 接口
+// TODO[李熠城]：FR-C-02 按圆/多边形/旋转矩形分发 zone 点包含判定
 bool SemanticZoneLayer::zoneContains(const SemanticZone & zone, double wx, double wy) const
-// TODO[李熠城]：FR-C-02 updateCosts 中将 zone 代价融合进 master costmap
 {
   switch (zone.shape) {
     case ShapeType::Circle:
@@ -188,6 +187,7 @@ void SemanticZoneLayer::updateBounds(
 }
 
 // updateCosts 接口
+// TODO[李熠城]：FR-C-02 遍历栅格，按 active_mode 将 zone keepout/软代价融合进 master costmap
 void SemanticZoneLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid,
   int min_i, int min_j, int max_i, int max_j)

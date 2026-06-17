@@ -63,7 +63,7 @@ void DynamicCongestionLayer::onInitialize()
     name_.c_str(), event_topic_.c_str());
 }
 
-// 收到拥堵事件消息，追加到 events_
+// TODO[李熠城]：FR-C-05 解析 Float32MultiArray 拥堵事件并追加到 events_
 void DynamicCongestionLayer::onEventMessage(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
 {
   auto node = node_.lock();
@@ -109,10 +109,9 @@ void DynamicCongestionLayer::onEventMessage(const std_msgs::msg::Float32MultiArr
   current_ = false;
 }
 
-// 清理 TTL 过期的动态事件
+// TODO[李熠城]：FR-C-05 TTL 过期事件清理，防止 events_ 无限增长
 void DynamicCongestionLayer::pruneExpiredEvents(double now_sec)
 {
-  // TTL 过了就删，避免 events_ 无限涨
   events_.erase(
     std::remove_if(
       events_.begin(), events_.end(),
@@ -157,6 +156,7 @@ void DynamicCongestionLayer::updateBounds(
 }
 
 // updateCosts 接口
+// TODO[李熠城]：FR-C-05 遍历栅格，对活跃拥堵圆计算衰减代价并融合进 master costmap
 void DynamicCongestionLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid,
   int min_i, int min_j, int max_i, int max_j)

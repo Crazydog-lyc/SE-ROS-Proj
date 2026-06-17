@@ -34,6 +34,7 @@ MergeStrategy parseMergeStrategy(const std::string & strategy_name)
 
 
 // modeMatches 接口
+// TODO[李熠城]：FR-C-03 任务模式过滤，决定 zone/lane 是否参与代价计算
 bool modeMatches(const std::string & zone_mode, const std::string & active_mode)
 {
   // zone.mode 为 all 时任何任务模式都生效
@@ -46,6 +47,7 @@ bool modeMatches(const std::string & zone_mode, const std::string & active_mode)
   return zone_mode == active_mode;
 }
 
+// TODO[李熠城]：FR-C-03 max/add/overwrite 三种代价融合策略
 unsigned char mergeCosts(
   unsigned char master_cost,
   unsigned char layer_cost,
@@ -80,7 +82,7 @@ unsigned char mergeCosts(
   return static_cast<unsigned char>(std::min(sum, static_cast<int>(LETHAL_OBSTACLE - 1U)));
 }
 
-// 离车道中心线越远 penalty 越高
+// TODO[李熠城]：FR-C-04 偏好车道走廊内外分段惩罚曲线
 unsigned char lanePenalty(
   double distance_to_lane,
   double corridor_width,
@@ -103,7 +105,7 @@ unsigned char lanePenalty(
   return static_cast<unsigned char>(std::lround(penalty));
 }
 
-// 距离拥堵圆心越近代价越高，带 exponent 衰减
+// TODO[李熠城]：FR-C-05 动态拥堵圆形衰减代价，exponent 控制边缘陡峭度
 unsigned char congestionPenalty(
   double distance_to_center,
   double radius,

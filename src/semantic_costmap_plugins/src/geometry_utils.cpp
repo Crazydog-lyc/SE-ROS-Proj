@@ -54,6 +54,7 @@ Point2D translatePoint(const Point2D & point, double tx, double ty)
 }
 
 
+// TODO[李熠城]：FR-C-01 圆域 keepout 点包含判定
 bool pointInCircle(
   double px, double py,
   double cx, double cy,
@@ -66,6 +67,7 @@ bool pointInCircle(
   return distanceSquared(px, py, cx, cy) <= (radius * radius);
 }
 
+// TODO[李熠城]：FR-C-01 旋转矩形局部坐标变换后点包含判定
 bool pointInRotatedRectangle(
   double px, double py,
   double cx, double cy,
@@ -88,11 +90,11 @@ bool pointInRotatedRectangle(
   return std::abs(local_x) <= width * 0.5 && std::abs(local_y) <= height * 0.5;
 }
 
+// TODO[李熠城]：FR-C-01 射线法多边形点包含判定
 bool pointInPolygon(
   double px, double py,
   const std::vector<Point2D> & polygon)
 {
-  // 射线法判点是否在多边形内，keepout 区域用
   if (polygon.size() < 3U) {
     return false;
   }
@@ -115,7 +117,7 @@ bool pointInPolygon(
   return inside;
 }
 
-// 点到线段最短距离，lane penalty 核心
+// TODO[李熠城]：FR-C-01 点到线段投影距离，偏好车道惩罚基础
 double distancePointToSegment(
   double px, double py,
   const Point2D & a,
@@ -136,11 +138,11 @@ double distancePointToSegment(
   return distance(px, py, proj_x, proj_y);
 }
 
+// TODO[李熠城]：FR-C-01 点到折线最短距离，遍历各段取 min
 double distancePointToPolyline(
   double px, double py,
   const std::vector<Point2D> & points)
 {
-  // 到折线各段距离的最小值，偏好车道 penalty 依赖这个
   if (points.empty()) {
     return std::numeric_limits<double>::infinity();
   }
