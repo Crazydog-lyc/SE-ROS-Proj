@@ -435,3 +435,86 @@ def test_goal_lock_prevents_double_accept(mission_node):
     assert node._goal_callback(MagicMock()) == rclpy.action.GoalResponse.REJECT
     with node._goal_lock:
         node._active_goal = False
+
+
+def test_should_backup_for_safety(mission_node):
+    node, _ = mission_node
+    assert node._should_backup_for_safety() is False
+
+    msg = SafetyState()
+    msg.level = SafetyState.STOP_NOW
+    msg.state_label = "PAUSED"
+    node._on_safety_state(msg)
+    assert node._should_backup_for_safety() is True
+
+
+@patch("nav2_mission_manager.mission_action_server.time.sleep", return_value=None)
+def test_publish_stop(_sleep, mission_node):
+    node, _ = mission_node
+    node._publish_stop(count=2, period_sec=0.01)
+
+
+@patch("nav2_mission_manager.mission_action_server.time.sleep", return_value=None)
+@patch("nav2_mission_manager.mission_action_server.rclpy.ok", return_value=True)
+def test_perform_safety_backup_and_replan(_ok, _sleep, mission_node):
+    node, _ = mission_node
+    msg = SafetyState()
+    msg.level = SafetyState.STOP_NOW
+    msg.state_label = "PAUSED"
+    node._on_safety_state(msg)
+
+    for client in node._clear_costmap_clients.values():
+        client.wait_for_service = MagicMock(return_value=True)
+        future = MagicMock()
+        future.done.return_value = True
+        client.call_async = MagicMock(return_value=future)
+
+    node._perform_safety_backup_and_replan_prep()
+
+
+@patch("nav2_mission_manager.mission_action_server.time.sleep", return_value=None)
+def test_clear_costmaps_service_unavailable(_sleep, mission_node):
+    node, _ = mission_node
+    for client in node._clear_costmap_clients.values():
+        client.wait_for_service = MagicMock(return_value=False)
+    node._clear_costmaps_for_replan()
+
+
+@patch("nav2_mission_manager.mission_action_server.time.sleep", return_value=None)
+def test_cancel_goal_waits_for_task_complete(_sleep, mission_node):
+    node, fake = mission_node
+    machine = MissionStateMachine()
+    ctx = _make_context()
+    ctx.state = MissionState.WAITING_FOR_RESULT
+    adapter = _make_adapter(fake)
+    adapter.send_goal(ctx.current_waypoint)
+    fake.task_active = True
+    fake.complete = True
+
+    msg = SafetyState()
+    msg.level = SafetyState.STOP_NOW
+    msg.state_label = "PAUSED"
+    node._on_safety_state(msg)
+
+    node._process_event(
+        machine,
+        ctx,
+        adapter,
+        Event(EventType.SAFETY_STOP, "stop"),
+    )
+    assert ctx.state == MissionState.PAUSED_FOR_SAFETY
+
+
+@patch("nav2_mission_manager.mission_action_server.MultiThreadedExecutor")
+@patch("nav2_mission_manager.mission_action_server.MissionActionServerNode")
+@patch("nav2_mission_manager.mission_action_server.rclpy")
+def test_main_keyboard_interrupt(mock_rclpy, mock_node_cls, mock_executor_cls):
+    from nav2_mission_manager.mission_action_server import main
+
+    mock_rclpy.ok.return_value = True
+    mock_executor = mock_executor_cls.return_value
+    mock_executor.spin.side_effect = KeyboardInterrupt
+
+    main()
+
+    mock_executor.shutdown.assert_called_once()

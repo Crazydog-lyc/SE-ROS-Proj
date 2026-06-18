@@ -22,7 +22,7 @@ source install/setup.bash
 ## Manual Demo
 
 ```
-python3 src/sam_bot_nav2_gz/scripts/generate_scattered_room.py --seed 42 --box-count 12
+python3 src/sam_bot_nav2_gz/scripts/generate_scattered_room.py --seed 53 --box-count 7
 source /opt/ros/humble/setup.bash && source install/setup.bash
 ros2 launch course_bringup mission_demo.launch.py \
   world_file:=demo_pillar_room.sdf \
@@ -33,6 +33,7 @@ ros2 launch course_bringup mission_demo.launch.py \
 ## Batch Scenario Demo
 
 ```bash
-GENERATE_SCATTERED_WORLD=True SCATTER_SEED=53 SCATTER_BOX_COUNT=7 RUN_HEADLESS=False RESULTS_DIR=/tmp/nav2_results_gui bash src/nav2_scenario_runner/scripts/run_batch.sh
+GENERATE_SCATTERED_WORLD=True SCATTER_SEED=53 SCATTER_BOX_COUNT=7 RUN_HEADLESS=False RESULTS_DIR=/tmp/nav2_results_gui 
+bash src/nav2_scenario_runner/scripts/run_batch.sh
 ```
 

@@ -2,7 +2,7 @@
 <!--
   Recovery tuned for near-wall stuck:
   keep the current path stable; only replan slowly or after recovery clears costmaps.
-  Recovery backs up first, then makes a small heading nudge.
+  Recovery backs up first, then spins 180 degrees.
 -->
 <root main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
@@ -29,13 +29,13 @@
             <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
             <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
           </Sequence>
-          <Sequence name="BackupThenNudgeCW">
+          <Sequence name="BackupThenSpin180CW">
             <BackUp backup_dist="0.25" backup_speed="0.08" time_allowance="12"/>
-            <Spin spin_dist="0.35" time_allowance="8"/>
+            <Spin spin_dist="1.570795" time_allowance="25"/>
           </Sequence>
-          <Sequence name="BackupThenNudgeCCW">
+          <Sequence name="BackupThenSpin180CCW">
             <BackUp backup_dist="0.25" backup_speed="0.08" time_allowance="12"/>
-            <Spin spin_dist="-0.35" time_allowance="8"/>
+            <Spin spin_dist="-1.570795" time_allowance="25"/>
           </Sequence>
           <Wait wait_duration="2"/>
         </RoundRobin>

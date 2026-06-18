@@ -5,7 +5,7 @@ batch_settings:
   nav2_startup_delay_sec: 50
   nav2_ready_timeout_sec: 420
   run_headless: true
-  enable_safety: false
+  enable_safety: true
   world_file: demo_pillar_room.sdf
 
 cases:

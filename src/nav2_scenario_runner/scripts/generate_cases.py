@@ -96,6 +96,25 @@ def _load_yaml(path: pathlib.Path) -> Dict[str, Any]:
         return yaml.safe_load(handle) or {}
 
 
+def _write_yaml(path: pathlib.Path, payload: Dict[str, Any]) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        yaml.safe_dump(payload, handle, sort_keys=False)
+
+
+def _write_case_metadata(case: Dict[str, Any], scenario_path: pathlib.Path) -> None:
+    world_file = case.get("world_file")
+    if not isinstance(world_file, str) or not world_file.strip():
+        return
+
+    scenario = _load_yaml(scenario_path)
+    metadata = scenario.get("metadata") or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+    metadata["world_file"] = world_file.strip()
+    scenario["metadata"] = metadata
+    _write_yaml(scenario_path, scenario)
+
+
 def _write_mission_file(
     case_id: str,
     scenario_path: pathlib.Path,
@@ -210,6 +229,7 @@ def write_companion_files(case: Dict[str, Any], output_dir: pathlib.Path) -> Non
     scenario_path = output_dir / f"{case_id}_scenario.yaml"
     waypoints_path = output_dir / f"{case_id}_waypoints.yaml"
     semantic_path = output_dir / f"{case_id}_semantic_regions.yaml"
+    _write_case_metadata(case, scenario_path)
     _write_mission_file(case_id, scenario_path, waypoints_path, output_dir, case)
     _write_semantic_overlay(case_id, scenario_path, semantic_path, output_dir)
 
@@ -226,6 +246,7 @@ def main() -> int:
     with open(args.profile, "r", encoding="utf-8") as f:
         profile = yaml.safe_load(f)
 
+    batch_settings = profile.get("batch_settings") or {}
     cases = profile.get("cases", [])
     if not cases:
         print("No cases found in profile.", file=sys.stderr)
@@ -233,14 +254,18 @@ def main() -> int:
 
     rows = []
     for case in cases:
-        print("Generating", case["case_id"])
-        result = subprocess.run(build_ros_args(case, output_dir), check=False)
+        case_config = dict(case)
+        if "world_file" not in case_config and batch_settings.get("world_file"):
+            case_config["world_file"] = batch_settings["world_file"]
+
+        print("Generating", case_config["case_id"])
+        result = subprocess.run(build_ros_args(case_config, output_dir), check=False)
         if result.returncode == 0:
-            write_companion_files(case, output_dir)
+            write_companion_files(case_config, output_dir)
         rows.append({
-            "case_id": case["case_id"],
-            "scenario_type": case.get("scenario_type", "corridor"),
-            "seed": case.get("seed", 42),
+            "case_id": case_config["case_id"],
+            "scenario_type": case_config.get("scenario_type", "corridor"),
+            "seed": case_config.get("seed", 42),
             "success": result.returncode == 0,
             "return_code": result.returncode,
         })
